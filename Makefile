@@ -2,7 +2,7 @@
 #
 #@ Remy Baratte, 2013
 #
-CC=gcc
+CC=g++
 CFLAGS=-o ardu
 SFLAGS=-Wall -pthread
 OBJ=main.o
@@ -15,4 +15,5 @@ main.o: main.cpp
 ardu: main.o
 	$(CC) $(OBJ) $(SFLAGS) $(CFLAGS)
 
-clean: rm -f $(OBJ) ardu
+clean: 
+	rm -f $(OBJ) ardu

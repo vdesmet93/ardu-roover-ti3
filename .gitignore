@@ -2,4 +2,6 @@
 # generated files
 bin/
 *.out
+ardu
+*.o
 
