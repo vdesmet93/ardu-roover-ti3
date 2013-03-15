@@ -23,14 +23,16 @@ void read() {
   if ( n == -1 )
       printf ( "Error = %s\n", strerror( errno ) );
  
-  printf ( "Number of bytes to be read = %i\n", n );
+  printf ( "Number of bytes read = %i\n", n );
 	for(int i = 0; i < n; i++) {
 		printf(" %x ", *(buf++));
 	}
 }
 
+/*
+ * Checksum generator for the buffer which will be send
+ */
 int getChecksum(unsigned char* buf) {
- 
 	 int i; 
 	 unsigned char n; 
 	 int c = 0; 
@@ -79,9 +81,12 @@ void sendPacket(char command) {
 	// send the array, print resultcode
 	int resultcode = write (fd, buf, 6);
 	printf("Resultcode: %d\n", resultcode);
-
 }
 
+/*
+ * Handler which is called by the system when the program needs to be closed
+ * Emergency stop the robot, reset the robot and close the connection
+ */
 void my_handler(int s){
 	if(s == 2) {
 		sendPacket(E_STOP);
@@ -91,7 +96,7 @@ void my_handler(int s){
 		sendPacket(CLOSE);
 		usleep(10000);
 	}
-           exit(1); 
+ 	exit(1); 
 }
 
 /*
@@ -221,6 +226,10 @@ void sendPacket(char command, char* argument, int size) {
 
 }
 
+/*
+ * The Pioneer requires a pulse message every two seconds
+ * We're sending it each second
+ */
 void pulse(void*) {
 	while(1) {
 		sendPacket(PULSE);
@@ -237,18 +246,18 @@ void startThread(void) {
 int open_port(void)
 {
   
-  fd = open("/dev/ttyUSB0", O_RDWR | O_NDELAY | O_SYNC);
-  if (fd == -1)
-  {
-
+	fd = open("/dev/ttyUSB0", O_RDWR | O_NDELAY | O_SYNC);
+	if (fd == -1)
+	{
 		perror("open_port: Unable to open /dev/ttyUSB0 - ");
   }
   else{
-     printf("Port Opened successfully\n");
+		printf("Port Opened successfully\n");
      
 		struct termios options;
 		tcgetattr(fd, &options);
 
+		// set settings
     cfsetispeed(&options, B9600);
     cfsetospeed(&options, B9600);
     options.c_cflag |= (CLOCAL | CREAD);
@@ -256,28 +265,20 @@ int open_port(void)
   	options.c_cflag &= ~CSTOPB;
   	options.c_cflag &= ~CSIZE;
     options.c_cflag |= CS8;
+		options.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);
+ 		options.c_iflag &= ~(IXON | IXOFF | IXANY);
+ 		options.c_oflag &= ~OPOST;
 
-	 // Enable Raw Input
-   
-  options.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);
+		if ( tcsetattr( fd, TCSANOW, &options ) == -1 ) {
+    	printf ("Error with tcsetattr = %s\n", strerror ( errno ) );
+  	}
+		else {
+    	printf ( "%s\n", "tcsetattr succeed" );
+		}
  
-  // Disable Software Flow control
- 
-  options.c_iflag &= ~(IXON | IXOFF | IXANY);
- 
-  // Chose raw (not processed) output
- 
-  options.c_oflag &= ~OPOST;
-
-if ( tcsetattr( fd, TCSANOW, &options ) == -1 )
-    printf ("Error with tcsetattr = %s\n", strerror ( errno ) );
-  else
-    printf ( "%s\n", "tcsetattr succeed" );
- 
-  fcntl(fd, F_SETFL, FNDELAY);
+  	fcntl(fd, F_SETFL, FNDELAY);
 		
 		// send SYNC0, SYNC1, SYNC2, OPEN to open the connection
-		// TODO read the input? Should be 'SYNC0', 'SYNC1', 'SYNC2'
 		sleep(1);
 		sendPacket(SYNC0);
 		sleep(1);
@@ -290,47 +291,44 @@ if ( tcsetattr( fd, TCSANOW, &options ) == -1 )
 		read();
 		startThread();
 
-
 		sendPacket(OPEN);
 		sleep(1);
 		// at this point, the connection is opened
-
-		// disable sonar
-		sendPacket(SONAR, 0);
-		usleep(10000);
-		
-		// enable the motors	
-		sendPacket(ENABLE, 1);
-		sleep(1);
-		
-		// rotate
-		sendPacket(DHEAD, 180);
-		sleep(3);
-		
-		// start driving
-		sendPacket(VEL, 1000);
-		sleep(1);
-
-		while(1) {
-			read();
-			sleep(1);
 		}
-}
 
   return (fd);
 }
 
 
 int main(void){
-struct sigaction sigIntHandler;
+	struct sigaction sigIntHandler;
 
    sigIntHandler.sa_handler = my_handler;
    sigemptyset(&sigIntHandler.sa_mask);
    sigIntHandler.sa_flags = 0;
 
-   sigaction(SIGINT, &sigIntHandler, NULL);
+	sigaction(SIGINT, &sigIntHandler, NULL);
 
-open_port();
+	open_port();
 
-return 0; 
+	// disable sonar
+	sendPacket(SONAR, 0);
+	usleep(10000);
+	
+	// enable the motors	
+	sendPacket(ENABLE, 1);
+	sleep(1);
+	
+	// rotate
+	sendPacket(DHEAD, 180);
+	sleep(3);
+	
+	// start driving
+	sendPacket(VEL, 1000);
+	sleep(1);
+		while(1) {
+		read();
+		sleep(1);
+	}
+	return 0; 
 }	
