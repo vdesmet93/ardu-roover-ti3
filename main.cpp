@@ -240,7 +240,7 @@ void startThread(void) {
 	pthread_t t;
 	void *pulse(void *);	
 
-	int rc = pthread_create(&t, NULL, pulse, NULL);
+	pthread_create(&t, NULL, pulse, NULL);
 }
 
 int open_port(void)
