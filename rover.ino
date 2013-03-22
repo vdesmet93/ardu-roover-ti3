@@ -85,14 +85,14 @@ int number,n, fd;
 
 
 void readFromRover() 
-{/*
+{
   while(mySerial.available() > 0) {
  
  int i = mySerial.read();
  char str[256];
  sprintf(str, "%x ", i);
  Serial.println(str);
- }*/
+ }
 }
 
 /*
@@ -420,7 +420,7 @@ void loop()
 
 
   // start driving
-  sendPacket(VEL, 1000);
+  sendPacket(VEL, 10000);
   delay(1000);
   while(1) 
   {
