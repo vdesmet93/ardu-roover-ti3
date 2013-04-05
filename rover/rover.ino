@@ -132,15 +132,18 @@ void sendPacket(char command, int argument)
   buf[3] = command;
 
   /* ============== ARGUMENT TYPE ============== */
-  if(argument > 0)
+  if(argument >= 0)
     buf[4] = (unsigned char) ARG_POS_INT;
-  else
+  else {
+    argument *= -1;
     buf[4] = (unsigned char) ARG_NEG_INT;
+  }
 
   /* ================= ARGUMENT ================= */
   // parse argument high and low
-  char highArgument = (argument & 0xFF00) >> 8;
+  char highArgument = ( (argument & 0xFF00) >> 8);
   char lowArgument = (argument & 0x00FF);
+  
 
   // add argument to array. 
   // Low byte first(instead of high-first for checksum, because f*ck consistency)
@@ -274,22 +277,37 @@ int current = 0;
 void loop()
 {
     sendPacket(PULSE);
-    Serial.println(pulseIn(JOYSTICK_RIGHT_X, HIGH));
 
+    // 1500 avg
+    // 1100 min
+    // 1900 max
+    int x = pulseIn(JOYSTICK_RIGHT_X, HIGH);
+    if(x > 1100) {
+     // 0-100
+     int percentage = (x - 1100) / 8;
+     percentage = 100 - percentage;
+     percentage -= 50;
+    Serial.println(percentage);     
+     sendPacket(ROTATE, percentage);
+     delay(50);
+    }
+    
+    
+    
     unsigned int s = pulseIn(JOYSTICK_LEFT_Y, HIGH);
     
 //     Serial.print("S: ");
-//    Serial.println(s);
+ //   Serial.println(s);
     
     if(s > 1100) {
       s = s - 1120;
       if(s > 0 && s < 35000) {
-       s *= 40;
+       s *= 4;
        sendPacket(VEL, s);      
   //     Serial.println(s);
       }
       else {
-        sendPacket(STOP);
+        sendPacket(VEL, 0);
     //     Serial.println("Stop");   
       }
     }
@@ -297,8 +315,14 @@ void loop()
       sendPacket(PULSE);
     }
 
+    int killswitch = pulseIn(KILL_SWITCH, HIGH);
+    //Serial.print("Kill: ");
+   // Serial.println(killswitch);
     
-    
+    if(killswitch > 1100) {
+      sendPacket(E_STOP);
+      delay(10);
+    }    
    
     delay(50);
 
