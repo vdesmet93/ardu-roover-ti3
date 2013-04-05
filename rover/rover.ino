@@ -2,24 +2,31 @@
 #include <SoftwareSerial.h>
 #include "commands.h"
 
-
 #define RX 10
 #define TX 11
+#define JOYSTICK_RIGHT_X  A0
+#define JOYSTICK_RIGHT_Y  A1
+#define JOYSTICK_LEFT_Y  A2
+#define JOYSTICK_LEFT_X  A3
+#define SONAR_FREQUENCY  A3
+#define EASTER_EGG  A5
+#define KILL_SWITCH  4
+#define MANUAL_AUTO  2
+
 #define bit9600Delay 84  
 
 SoftwareSerial mySerial(RX, TX); // RX, TX
 int number,n, fd;
 
-
 void readFromRover() 
 {
   while(mySerial.available() > 0) {
- 
-   int i = mySerial.read();
-   char str[256];
-   sprintf(str, "%x ", i);
-   Serial.println(str);
- }
+
+    int i = mySerial.read();
+    char str[256];
+    sprintf(str, "%x ", i);
+    Serial.println(str);
+  }
 }
 
 /*
@@ -53,6 +60,7 @@ int writeSerial(unsigned char* buf, int length) {
 
   return length;
 }
+
 void SWprint(int data)
 {
   byte mask;
@@ -99,12 +107,10 @@ void sendPacket(char command)
   // send the array, print resultcode
   int resultcode = writeSerial (buf, 6);
 
-  char str[256];
-  sprintf(str, "Resultcode: %d", resultcode);
-  Serial.println(str);
+  //char str[256];
+  //sprintf(str, "Resultcode: %d", resultcode);
+ // Serial.println(str);
 }
-
-
 
 /*
 * Send a packet with 1 argument: ENABLE, SETA, SONAR
@@ -157,9 +163,9 @@ void sendPacket(char command, int argument)
   // send the array, print resultcode
   int resultcode = writeSerial (buf, 9);
 
-  char str[256];
-  sprintf(str, "Resultcode: %d", resultcode);
-  Serial.println(str);
+  //char str[256];
+ // sprintf(str, "Resultcode: %d", resultcode);
+  //Serial.println(str);
 }
 /*
 * Send a packet with a string as argument
@@ -216,46 +222,89 @@ void sendPacket(char command, char* argument, int size) {
   /* ================= TRANSFER ================= */
   // send the array, print resultcode
   int resultcode = writeSerial (buf, bytes);
-  printf("Resultcode: %d\n", resultcode);
+//  printf("Resultcode: %d\n", resultcode);
 }
 
 void setup() 
 {
   // define pin modes for tx, rx:
   pinMode(RX,INPUT);
-  pinMode(TX,OUTPUT);
-  digitalWrite(TX,HIGH);
-  digitalWrite(RX,LOW);
-
+  pinMode(TX, OUTPUT);
+  pinMode(JOYSTICK_RIGHT_X, INPUT);
+  pinMode(JOYSTICK_RIGHT_Y, INPUT);
+  pinMode(JOYSTICK_LEFT_X, INPUT);
+  pinMode(JOYSTICK_LEFT_X, INPUT);
+  pinMode(SONAR_FREQUENCY, INPUT);
+  pinMode(EASTER_EGG, INPUT);
+  pinMode(KILL_SWITCH, INPUT);
+  pinMode(MANUAL_AUTO, INPUT);
+  digitalWrite(TX, HIGH);
+  digitalWrite(RX, LOW);
+  
   Serial.begin(9600);
 
   mySerial.begin(9600);
-  delay(20);
+  delay(100);
 
-  pinMode(9, INPUT);
+  //pinMode(9, INPUT);
   sendPacket(SYNC0);
-  delay(20);  
+  delay(100);  
 
   sendPacket(SYNC1);
-  delay(20);
-  readFromRover();
+  delay(100);
+  //readFromRover();
   sendPacket(SYNC2);
-  delay(20);
-  
+  delay(100);
+
   sendPacket(OPEN);
-  delay(20);
+  delay(100);
 
 
-  sendPacket(SONAR, 0);
-  delay(20);
-  
+ // sendPacket(SONAR, 0);
+   sendPacket(BUMPSTALL, 0);
+  delay(100);
+
   // enable the motors	
   sendPacket(ENABLE, 1);
-  delay(20);    
+  delay(100);    
 }
+
+int current = 0;
+
 void loop()
 {
+    sendPacket(PULSE);
+    Serial.println(pulseIn(JOYSTICK_RIGHT_X, HIGH));
+
+    unsigned int s = pulseIn(JOYSTICK_LEFT_Y, HIGH);
+    
+//     Serial.print("S: ");
+//    Serial.println(s);
+    
+    if(s > 1100) {
+      s = s - 1120;
+      if(s > 0 && s < 35000) {
+       s *= 40;
+       sendPacket(VEL, s);      
+  //     Serial.println(s);
+      }
+      else {
+        sendPacket(STOP);
+    //     Serial.println("Stop");   
+      }
+    }
+    else {
+      sendPacket(PULSE);
+    }
+
+    
+    
+   
+    delay(50);
+
+
   
+  /**
   // rotate
   sendPacket(DHEAD, 180);
   delay(1000);
@@ -263,19 +312,17 @@ void loop()
   delay(1000);
   sendPacket(PULSE);
   delay(1000);
- 
+
   // start driving
   sendPacket(VEL, 10000);
   delay(1000);
   while(1) 
   {
     readFromRover();
-    
+
     sendPacket(PULSE);
     delay(100);
-  }
-}	
-
-
+  }**/
+}
 
 
