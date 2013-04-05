@@ -1,10 +1,10 @@
-PORT 1: Joystick-Right-X					Turning
-PORT 2: Joystick-Right-Y					(Camera Turning 1)
-PORT 3: Joystick-Left-Y						Speed
-PORT 4: Joystick-Left-X						(Camera Turning 2)
-PORT 5: H													Kill Switch
-PORT 6: VR		 										Sonar Speed
-PORT 7: B													Auto/Manual Driving	
-PORT 8: C													Easter Egg
+PORT 1: Joystick-Right-X					Analog								Turning
+PORT 2: Joystick-Right-Y					Analog								(Camera Turning 1)
+PORT 3: Joystick-Left-Y						Analog								Speed
+PORT 4: Joystick-Left-X						Analog								(Camera Turning 2)
+PORT 5: H													Digital								Kill Switch
+PORT 6: VR		 										Analog								Sonar Speed
+PORT 7: B													Digital								Auto/Manual Driving	
+PORT 8: C													Analog								Easter Egg
 
 Change settings: Hold +, Pick 3/3 Aux-Chan												
