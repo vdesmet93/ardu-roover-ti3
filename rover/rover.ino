@@ -286,13 +286,27 @@ void loop()
      // 0-100
      int percentage = (x - 1100) / 8;
      percentage = 100 - percentage;
-     percentage -= 50;
-    Serial.println(percentage);     
+     percentage -= 50; 
      sendPacket(ROTATE, percentage);
      delay(50);
     }
     
     
+    int easteregg = pulseIn(EASTER_EGG, HIGH);
+    Serial.println(easteregg);
+    
+    boolean backward = false;
+    boolean egg = false;
+    
+    if(easteregg < 1000) {
+      // normal setup
+    }
+    else if(easteregg > 1000 && easteregg < 2000) {
+      egg = true;
+    }
+    else if(easteregg > 2000) {
+      backward = true;
+    }
     
     unsigned int s = pulseIn(JOYSTICK_LEFT_Y, HIGH);
     
@@ -303,7 +317,14 @@ void loop()
       s = s - 1120;
       if(s > 0 && s < 35000) {
        s *= 4;
-       sendPacket(VEL, s);      
+       
+       if(egg)
+         s = 0;
+       
+       if(backward)
+         sendPacket(VEL, -s);      
+       else
+          sendPacket(VEL, s);      
   //     Serial.println(s);
       }
       else {
@@ -325,8 +346,9 @@ void loop()
     }    
    
     delay(50);
-
-
+    
+    
+   
   
   /**
   // rotate
