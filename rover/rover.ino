@@ -14,8 +14,7 @@
 #define KILL_SWITCH  4
 #define MANUAL_AUTO  2
 #define SYNC_DELAY  100
-#define LOOP_DELAY  50
-#define KILL_DELAY  10
+#define KILL_DELAY  25
 #define MAX_SPEED  35000
 #define REVERSE_THRESHOLD  2000
 #define SPEED_THRESHOLD  1100
@@ -280,5 +279,4 @@ void loop()
     sendPacket(E_STOP);
     delay(KILL_DELAY);
   }
-  delay(LOOP_DELAY);
 }
