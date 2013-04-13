@@ -1,4 +1,3 @@
-
 #include <SoftwareSerial.h>
 #include "commands.h"
 
@@ -9,11 +8,12 @@
 #define JOYSTICK_RIGHT_Y  A1
 #define JOYSTICK_LEFT_Y  A2
 #define JOYSTICK_LEFT_X  A3
-#define SONAR_FREQUENCY  A3
+#define SONAR_FREQUENCY  A4
 #define DIRECTION  A5
 #define KILL_SWITCH  4
 #define MANUAL_AUTO  2
-#define SYNC_DELAY  100
+#define SYNC_DELAY  25
+#define PACKET_DELAY  5
 #define KILL_DELAY  25
 #define MAX_SPEED  35000
 #define REVERSE_THRESHOLD  2000
@@ -22,24 +22,61 @@
 #define HALT_THRESHOLD  1100
 #define ANGLE_THRESHOLD  1100
 #define KILLSWITCH_THRESHOLD  1100
-#define bit9600Delay 84  
+#define SPEED_MULTIPLIER  4
+#define BASE_PACKET_LENGTH  6
+#define BYTE_SHIFT  8
+#define AND_MSB  0xFF00
+#define AND_LSB  0x00FF
+#define ARG_LENGTH  3
+#define HEADER_A  0xFA
+#define HEADER_B  0xFB
+#define bit9600Delay  84
 #define BAUD_RATE  9600
 
-SoftwareSerial mySerial(RX, TX); // RX, TX
-int number, n, fd;
+SoftwareSerial softSerial(RX, TX); // RX, TX
+int number, n, fd, anglePulse, directionPulse, killPulse;
 int current = 0;
 boolean backward = false;
 boolean halt = false;
-int anglePulse;
-int directionPulse;
 unsigned int spd;
-int killPulse;
+
+void setup() 
+{
+  pinMode(RX,INPUT);
+  pinMode(TX, OUTPUT);
+  pinMode(JOYSTICK_RIGHT_X, INPUT);
+  pinMode(JOYSTICK_RIGHT_Y, INPUT);
+  pinMode(JOYSTICK_LEFT_X, INPUT);
+  pinMode(JOYSTICK_LEFT_X, INPUT);
+  pinMode(SONAR_FREQUENCY, INPUT);
+  pinMode(DIRECTION, INPUT);
+  pinMode(KILL_SWITCH, INPUT);
+  pinMode(MANUAL_AUTO, INPUT);
+  digitalWrite(TX, HIGH);
+  digitalWrite(RX, LOW);
+  Serial.begin(BAUD_RATE);
+  softSerial.begin(BAUD_RATE);
+  sendPacket(SYNC0);
+  delay(SYNC_DELAY);
+  sendPacket(SYNC1);
+  delay(SYNC_DELAY);
+  sendPacket(SYNC2);
+  delay(SYNC_DELAY);
+  sendPacket(OPEN);
+  delay(SYNC_DELAY);
+  sendPacket(SONAR, 0);
+  delay(PACKET_DELAY);
+  sendPacket(BUMPSTALL, 0);
+  delay(PACKET_DELAY);
+  sendPacket(ENABLE, 1);
+  delay(PACKET_DELAY);
+}
 
 void readFromRover()
 {
-  while(mySerial.available() > 0)
+  while(softSerial.available() > 0)
   {
-    int i = mySerial.read();
+    int i = softSerial.read();
     char str[256];
     sprintf(str, "%x ", i);
     Serial.println(str);
@@ -51,27 +88,25 @@ void readFromRover()
  */
 int getChecksum(unsigned char* buf)
 {
-  int i;
-  unsigned char n;
+  int i = 3;
+  unsigned char n = buf[2] - 2;
   int c = 0;
-  i = 3;
-  n = buf[2] - 2;
   while (n > 1)
   {
-    c += ((unsigned char)buf[i]<<8) | (unsigned char)buf[i+1];
-    c = c & 0xffff;
+    c += ((unsigned char) buf[i] << BYTE_SHIFT) | (unsigned char) buf[i+1];
+    c = c & 0xFFFF;
     n -= 2;
     i += 2;
   }
   if (n > 0)
-    c = c ^ (int)((unsigned char) buf[i]);
+    c = c ^ (int)((unsigned char) buf[i]); //TODO: Replace with ^= if possible.
   return c;
 }
 
 int writeSerial(unsigned char* buf, int length)
 {
   for(int i = 0; i < length; i++)
-    mySerial.write(buf[i]);
+    softSerial.write(buf[i]);
   return length;
 }
 
@@ -82,40 +117,39 @@ int writeSerial(unsigned char* buf, int length)
 void sendPacket(char command)
 {
   // create array. Length = 6 because we don't have any arguments
-  unsigned char buf[6];
-  // header
-  buf[0] = 0xFA; // 250
-  buf[1] = 0xFB; // 251
+  unsigned char buf[BASE_PACKET_LENGTH];
+  buf[0] = HEADER_A;
+  buf[1] = HEADER_B;
   // length
-  buf[2] = 3; // command + 2 byte checksum
+  buf[2] = ARG_LENGTH; // command + 2 byte checksum
   // command
   buf[3] = command;
   // generate checksum
   int checksum = getChecksum(buf);
   // parse the checksum
-  char high = (checksum & 0xFF00) >> 8;
-  char low = checksum & 0x00FF;
+  char msb = (checksum & AND_MSB) >> BYTE_SHIFT;
+  char lsb = checksum & AND_LSB;
   // add checksum to array, high byte is first
-  buf[4] = high;
-  buf[5] = low;
+  buf[4] = msb;
+  buf[5] = lsb;
   // send the array, print resultcode
-  int resultcode = writeSerial (buf, 6);
+  writeSerial(buf, BASE_PACKET_LENGTH);
 }
 
 /*
-* Send a packet with 1 argument: ENABLE, SETA, SONAR
+ * Send a packet with 1 argument: ENABLE, SETA, SONAR
  */
 void sendPacket(char command, int argument)
 {
   //create array. Length = 9: 2 header, 1 byte count, 1 command, 1 arg. type, 2 argument, 
   //2 checksum
-  unsigned char buf[9];
+  unsigned char buf[BASE_PACKET_LENGTH + ARG_LENGTH];
   /* ================= HEADER ================= */
-  buf[0] = 0xFA; // 250
-  buf[1] = 0xFB; // 251
+  buf[0] = HEADER_A;
+  buf[1] = HEADER_B;
   /* =============== PACKET LENGTH =============== */
   // command + 2 byte checksum + 2 byte message
-  buf[2] = 6; 
+  buf[2] = BASE_PACKET_LENGTH; 
   /* ================= COMMAND ================= */
   buf[3] = command;
   /* ============== ARGUMENT TYPE ============== */
@@ -128,8 +162,8 @@ void sendPacket(char command, int argument)
   }
   /* ================= ARGUMENT ================= */
   // parse argument high and low
-  char highArgument = ( (argument & 0xFF00) >> 8);
-  char lowArgument = (argument & 0x00FF);
+  char highArgument = ((argument & AND_MSB) >> BYTE_SHIFT);
+  char lowArgument = (argument & AND_LSB);
   // add argument to array. 
   // Low byte first(instead of high-first for checksum, because f*ck consistency)
   buf[5] = lowArgument;
@@ -138,18 +172,18 @@ void sendPacket(char command, int argument)
   // generate checksum
   int checksum = getChecksum(buf);
   // parse the checksum
-  char highChecksum = (checksum & 0xFF00) >> 8;
-  char lowChecksum = checksum & 0x00FF;
+  char highChecksum = (checksum & AND_MSB) >> BYTE_SHIFT;
+  char lowChecksum = checksum & AND_LSB;
   // add checksum to array, high byte is first
   buf[7] = highChecksum;
   buf[8] = lowChecksum;
   /* ================= TRANSFER ================= */
   // send the array, print resultcode
-  int resultcode = writeSerial (buf, 9);
+  writeSerial(buf, 9);
 }
 
 /*
-* Send a packet with a string as argument
+ * Send a packet with a string as argument
  */
 void sendPacket(char command, char* argument, int size)
 {
@@ -158,11 +192,11 @@ void sendPacket(char command, char* argument, int size)
   int bytes = size + 7;
   unsigned char buf[bytes];
   /* ================= HEADER ================= */
-  buf[0] = 0xFA; // 250
-  buf[1] = 0xFB; // 251
+  buf[0] = HEADER_A;
+  buf[1] = HEADER_B;
   /* =============== PACKET LENGTH =============== */
   // command + 2 byte checksum + 2 byte message
-  buf[2] = 6; 
+  buf[2] = BASE_PACKET_LENGTH; 
   /* ================= COMMAND ================= */
   buf[3] = command;
   /* ============== ARGUMENT TYPE ============== */
@@ -185,47 +219,14 @@ void sendPacket(char command, char* argument, int size)
   // generate checksum
   int checksum = getChecksum(buf);
   // parse the checksum
-  char highChecksum = (checksum & 0xFF00) >> 8;
-  char lowChecksum = checksum & 0x00FF;
+  char highChecksum = (checksum & AND_MSB) >> BYTE_SHIFT;
+  char lowChecksum = checksum & AND_LSB;
   // add checksum to array, high byte is first
   buf[bytes-2] = highChecksum;
   buf[bytes-1] = lowChecksum;
   /* ================= TRANSFER ================= */
   // send the array, print resultcode
-  int resultcode = writeSerial (buf, bytes);
-}
-
-void setup() 
-{
-  pinMode(RX,INPUT);
-  pinMode(TX, OUTPUT);
-  pinMode(JOYSTICK_RIGHT_X, INPUT);
-  pinMode(JOYSTICK_RIGHT_Y, INPUT);
-  pinMode(JOYSTICK_LEFT_X, INPUT);
-  pinMode(JOYSTICK_LEFT_X, INPUT);
-  pinMode(SONAR_FREQUENCY, INPUT);
-  pinMode(DIRECTION, INPUT);
-  pinMode(KILL_SWITCH, INPUT);
-  pinMode(MANUAL_AUTO, INPUT);
-  digitalWrite(TX, HIGH);
-  digitalWrite(RX, LOW);
-  Serial.begin(BAUD_RATE);
-  mySerial.begin(BAUD_RATE);
-  delay(SYNC_DELAY);
-  sendPacket(SYNC0);
-  delay(SYNC_DELAY);
-  sendPacket(SYNC1);
-  delay(SYNC_DELAY);
-  sendPacket(SYNC2);
-  delay(SYNC_DELAY);
-  sendPacket(OPEN);
-  delay(SYNC_DELAY);
-  sendPacket(SONAR, 0);
-  delay(SYNC_DELAY);
-  sendPacket(BUMPSTALL, 0);
-  delay(SYNC_DELAY);
-  sendPacket(ENABLE, 1);
-  delay(SYNC_DELAY);
+  writeSerial(buf, bytes);
 }
 
 void loop()
@@ -260,7 +261,7 @@ void loop()
     spd = spd - (SPEED_THRESHOLD + SPEED_COMPENSATOR);
     if(spd > 0 && spd < MAX_SPEED)
     {
-      spd *= 4;
+      spd *= SPEED_MULTIPLIER;
       if(halt)
         spd = 0;
       if(backward)
