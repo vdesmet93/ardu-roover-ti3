@@ -232,9 +232,8 @@ void sendPacket(char command, char* argument, int size)
   writeSerial(buf, bytes);
 }
 
-void loop()
+void checkAngle()
 {
-  sendPacket(PULSE);
   anglePulse = pulseIn(JOYSTICK_RIGHT_X, HIGH);
   if(anglePulse > ANGLE_THRESHOLD)
   {
@@ -246,6 +245,10 @@ void loop()
     }
     sendPacket(ROTATE, angle * ANGLE_MULTIPLIER);
   }
+}
+
+void checkDirection()
+{
   directionPulse = pulseIn(DIRECTION, HIGH);
   if(directionPulse > FORWARD_THRESHOLD && directionPulse < HALT_THRESHOLD)
   {
@@ -262,6 +265,10 @@ void loop()
     backward = true;
     halt = false;
   }
+}
+
+void checkSpeed()
+{
   spd = pulseIn(JOYSTICK_LEFT_Y, HIGH);
   if(spd > SPEED_THRESHOLD)
   {
@@ -281,10 +288,23 @@ void loop()
   }
   else
     sendPacket(PULSE);
+}
+
+void checkKillswitch()
+{
   killPulse = pulseIn(KILL_SWITCH, HIGH);
   if(killPulse > KILLSWITCH_THRESHOLD)
   {
     sendPacket(E_STOP);
     delay(KILL_DELAY);
   }
+}
+
+void loop()
+{
+  sendPacket(PULSE);
+  checkAngle();
+  checkDirection();
+  checkSpeed();
+  checkKillswitch();
 }
