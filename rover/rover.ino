@@ -16,12 +16,15 @@
 #define PACKET_DELAY  5
 #define KILL_DELAY  25
 #define MAX_SPEED  35000
+#define FORWARD_THRESHOLD 700
 #define REVERSE_THRESHOLD  2000
 #define SPEED_THRESHOLD  1100
 #define SPEED_COMPENSATOR  50
 #define HALT_THRESHOLD  1100
 #define ANGLE_THRESHOLD  1100
+#define DEAD_ZONE 3
 #define KILLSWITCH_THRESHOLD  1100
+#define ANGLE_MULTIPLIER  1.5
 #define SPEED_MULTIPLIER  4
 #define BASE_PACKET_LENGTH  6
 #define BYTE_SHIFT  8
@@ -99,7 +102,7 @@ int getChecksum(unsigned char* buf)
     i += 2;
   }
   if (n > 0)
-    c = c ^ (int)((unsigned char) buf[i]); //TODO: Replace with ^= if possible.
+    c ^= (int)((unsigned char) buf[i]); //TODO: Replace with ^= if possible.
   return c;
 }
 
@@ -237,10 +240,14 @@ void loop()
   {
     int angle = 100 - ((anglePulse - ANGLE_THRESHOLD) / 8);
     angle -= 50;
-    sendPacket(ROTATE, angle);
+    if(-DEAD_ZONE < angle && DEAD_ZONE > angle)
+    {
+      angle = 0;
+    }
+    sendPacket(ROTATE, angle * ANGLE_MULTIPLIER);
   }
   directionPulse = pulseIn(DIRECTION, HIGH);
-  if(directionPulse < HALT_THRESHOLD)
+  if(directionPulse > FORWARD_THRESHOLD && directionPulse < HALT_THRESHOLD)
   {
     halt = false;
     backward = false;
