@@ -1,0 +1,36 @@
+#pragma once
+
+#define DEBUG
+#define RX 10
+#define TX 11
+#define BAUD_RATE  9600
+#define BASE_PACKET_LENGTH  6
+#define BYTE_SHIFT  8
+#define AND_MSB  0xFF00
+#define AND_LSB  0x00FF
+#define ARG_LENGTH  3
+#define HEADER_A  0xFA
+#define HEADER_B  0xFB
+#define JOYSTICK_RIGHT_X  A0
+#define JOYSTICK_RIGHT_Y  A1
+#define JOYSTICK_LEFT_Y  A2
+#define JOYSTICK_LEFT_X  A3
+#define SONAR_FREQUENCY  A4
+#define DIRECTION  A5
+#define KILL_SWITCH  4
+#define MANUAL_AUTO  2
+#define SYNC_DELAY  25
+#define PACKET_DELAY  5
+#define KILL_DELAY  25
+#define MAX_SPEED  35000
+#define FORWARD_THRESHOLD 700
+#define REVERSE_THRESHOLD  2000
+#define SPEED_THRESHOLD  1100
+#define SPEED_COMPENSATOR  50
+#define HALT_THRESHOLD  1100
+#define ANGLE_THRESHOLD  1100
+#define DEAD_ZONE 3
+#define KILLSWITCH_THRESHOLD  1100
+#define ANGLE_MULTIPLIER  1.5
+#define SPEED_MULTIPLIER  4
+#define BAUD_RATE  9600

@@ -1,9 +1,10 @@
+#pragma once
+
 #define SYNC0 0
 #define SYNC1 1
 #define SYNC2 2
 
 #define PULSE 0
-
 #define OPEN 1
 #define CLOSE 2
 #define POLLING 3
@@ -54,7 +55,6 @@
 #define GETAUX2 67
 #define CHARGE 68
 // ARM 70-80
-
 #define ROTKP 82
 #define ROTKV 83
 #define ROTKI 84
