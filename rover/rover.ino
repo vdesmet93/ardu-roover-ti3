@@ -24,7 +24,8 @@ void setup()
   digitalWrite(TX, HIGH);
   digitalWrite(RX, LOW);
   Serial.begin(BAUD_RATE);
-  softSerial.begin(BAUD_RATE);
+  initializeConnection();
+  
   sendPacket(SONAR, 0);
   delay(PACKET_DELAY);
   sendPacket(BUMPSTALL, 0);
@@ -77,8 +78,8 @@ void checkSpeed()
     if(spd > 0 && spd < MAX_SPEED)
     {
       spd *= SPEED_MULTIPLIER;
-      if(halt)
-        spd = 0;
+      //if(halt)
+      //  spd = 0;
       if(backward)
         sendPacket(VEL, -spd);
       else
