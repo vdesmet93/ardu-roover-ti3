@@ -18,11 +18,8 @@ void initializeConnection()
   sendPacket(OPEN);
   delay(SYNC_DELAY); 
 
-  sendPacket(SONAR, 0);
-  delay(PACKET_DELAY);
   sendPacket(BUMPSTALL, 0);
   delay(PACKET_DELAY);
-  
   sendPacket(ENABLE, 1);
   delay(PACKET_DELAY);
 }
@@ -164,6 +161,18 @@ void sendPacket(char command, char* argument, int size)
   /* ================= TRANSFER ================= */
   // send the array, print resultcode
   writeSerial(buf, bytes);
+}
+
+void enableSonar()
+{
+  sendPacket(SONAR, 1);
+  delay(PACKET_DELAY);
+}
+
+void sendSonarSpeed(int interval)
+{
+  sendPacket(SONARCYCLE, interval);
+  delay(PACKET_DELAY);
 }
 
 int writeSerial(unsigned char* buf, int length)

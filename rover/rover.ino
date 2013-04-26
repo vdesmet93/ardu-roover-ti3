@@ -25,13 +25,8 @@ void setup()
   digitalWrite(RX, LOW);
   Serial.begin(BAUD_RATE);
   initializeConnection();
+  enableSonar();
   
-  sendPacket(SONAR, 0);
-  delay(PACKET_DELAY);
-  sendPacket(BUMPSTALL, 0);
-  delay(PACKET_DELAY);
-  sendPacket(ENABLE, 1);
-  delay(PACKET_DELAY);
 }
 
 void checkAngle()
@@ -105,9 +100,12 @@ void checkKillswitch()
 void loop()
 {
   sendPacket(PULSE);
+  
   checkAngle();
   checkDirection();
   checkSpeed();
   checkKillswitch();
+  Serial.println("Pioneer Data: ");
+  readFromRover();
 }
 
