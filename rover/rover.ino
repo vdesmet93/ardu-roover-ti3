@@ -26,7 +26,6 @@ void setup()
   Serial.begin(BAUD_RATE);
   initializeConnection();
   enableSonar();
-  
 }
 
 void checkAngle()
@@ -108,4 +107,5 @@ void loop()
   Serial.println("Pioneer Data: ");
   readFromRover();
 }
+
 

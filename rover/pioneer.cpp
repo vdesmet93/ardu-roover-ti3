@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <SoftwareSerial.h>
+
 #include "pioneer.h"
 #include "commands.h"
 #include "defines.h"
@@ -182,6 +183,118 @@ int writeSerial(unsigned char* buf, int length)
   return length;
 }
 
+void receiveData()
+{
+  unsigned char receivedBytes[MAX_DATA_SIZE];
+  int bytesRead = 0;
+  while(softSerial.available() > 0 && bytesRead < MAX_DATA_SIZE)
+  {
+    receivedBytes[bytesRead++] = softSerial.read();
+  }
+
+  switch(checkMessage(receivedBytes, bytesRead))
+  {
+  case MESSAGE_COMPLETE:
+    //  procesPacket(receivedBytes);
+    //    byteCounter = 0;
+    break;
+  case MESSAGE_INCORRECT:
+    //    byteCounter = 0;
+    //    P1acketsDropped++;
+    //    if (IncorrectMessage != null)
+    //      IncorrectMessage(this, new EventArgs());
+    break;
+  case MESSAGE_INCOMPLETE:
+    //wait for to be complete of incorrect
+    //    Console.Out.WriteLine("notcomplete");
+    break;
+  }
+}
+
+int checkMessage(unsigned char receivedBytes[], int count)
+{
+  //check headers
+  if (receivedBytes[0] != HEADER_A ||
+    receivedBytes[1] != HEADER_B)
+  {
+    return MESSAGE_INCORRECT;
+  }
+  if (count < BASE_PACKET_LENGTH)
+  {
+    return MESSAGE_INCOMPLETE;
+  }
+  //check if all bytes are recieved
+  int packetSize = receivedBytes[PACKET_COUNT_POSITION];
+  if( count == packetSize + PACKET_HEADER_LENGTH)
+  {
+    return MESSAGE_INCOMPLETE;
+  }
+
+  //calculate checksum and check
+  int calculatedChecksum = getChecksum(receivedBytes);
+  int recievedCheckSum = (receivedBytes[count - 2] << 8) | receivedBytes[count - 1];
+  if (calculatedChecksum != recievedCheckSum)
+  {
+    return MESSAGE_INCORRECT;
+  }
+  return MESSAGE_COMPLETE;
+}
+
+struct SipMessage ConvertToSipMessage(byte receivedBytes[])
+{
+  struct SipMessage message;
+  message.motorStatus = receivedBytes[POS_COMMAND] == 0x32 ? SIP_MOTOR_STOPPED : SIP_MOTOR_MOVING;
+  message.xPos	= receivedBytes[POS_SIP_XPOS_1];
+  message.xPos	|= receivedBytes[POS_SIP_XPOS_2] << 8;
+  message.yPos	= receivedBytes[POS_SIP_YPOS_1];
+  message.yPos	|= receivedBytes[POS_SIP_YPOS_2] << 8;
+  message.thPos	= receivedBytes[POS_SIP_THPOS_1];
+  message.thPos	|= receivedBytes[POS_SIP_THPOS_2] << 8;
+  message.lVel	= receivedBytes[POS_SIP_LVEL_1];
+  message.lVel	|= receivedBytes[POS_SIP_LVEL_2] << 8;
+  message.rVel	= receivedBytes[POS_SIP_RVEL_1];
+  message.rVel	|= receivedBytes[POS_SIP_RVEL_2] << 8;
+  message.batteryLevel = receivedBytes[POS_SIP_BATTERY];
+  message.stallAndBumper = receivedBytes[POS_SIP_STALL_AND_BUMPERS_1];
+  message.stallAndBumper |= (unsigned char)(receivedBytes[POS_SIP_STALL_AND_BUMPERS_2] << 8);
+  message.control = receivedBytes[POS_SIP_CONTROL_1];
+  message.control |= receivedBytes[POS_SIP_CONTROL_2] << 8;
+  message.flags = receivedBytes[POS_SIP_FLAGS_1];
+  message.flags = (unsigned char) (receivedBytes[POS_SIP_FLAGS_2] << 8);
+  message.compass = receivedBytes[POS_SIP_COMPASS];
+  /**
+   * int numberOfSensors = receivedBytes[POS_SIP_SonarCount];
+   * message.Sonar = new SonarValue[numberOfSensors];
+   * int index = POS_SIP_SonarBegin;
+   * for (int i = 0; i < numberOfSensors; ++i)
+   * {
+   * byte sensorNumber = receivedBytes[index++];
+   * byte sensorLValue = receivedBytes[index++];
+   * byte sensorHValue = receivedBytes[index++];
+   * ushort sensorValue = (ushort)(sensorLValue + (sensorHValue << 8));
+   * message.Sonar[i] = new SonarValue()
+   * {
+   * SonarNumber = sensorNumber,
+   * Range = sensorValue
+   * };
+   * }
+   * 
+   * message.GripState = receivedBytes[index + POS_SIP_GripState - POS_SIP_SonarBegin];
+   * message.AnPort = receivedBytes[index + POS_SIP_AnPort - POS_SIP_SonarBegin];
+   * message.Analog = receivedBytes[index + POS_SIP_Analog - POS_SIP_SonarBegin];
+   * message.DigIn = receivedBytes[index + POS_SIP_DigIn - POS_SIP_SonarBegin];
+   * message.DigOut = receivedBytes[index + POS_SIP_DigOut - POS_SIP_SonarBegin];
+   * message.BatteryX10 = receivedBytes[index + POS_SIP_BatteryX10_1 - POS_SIP_SonarBegin];
+   * message.BatteryX10 |= receivedBytes[index + POS_SIP_BatteryX10_2 - POS_SIP_SonarBegin] << 8;
+   * message.ChargeState = receivedBytes[index + POS_SIP_ChargeState - POS_SIP_SonarBegin];
+   * message.RotVel = receivedBytes[index + POS_SIP_RotVel1 - POS_SIP_SonarBegin];
+   * message.RotVel |= receivedBytes[index + POS_SIP_RotVel2 - POS_SIP_SonarBegin] << 8;
+   * message.FaultFlags = receivedBytes[index + POS_SIP_FaultFlags1 - POS_SIP_SonarBegin];
+   * message.FaultFlags |= receivedBytes[index + POS_SIP_FaultFlags2 - POS_SIP_SonarBegin] << 8;
+   **/
+  return message;
+}
+
 void readFromRover()
 {
   while(softSerial.available() > 0)
@@ -192,4 +305,3 @@ void readFromRover()
     Serial.println(str);
   }
 }
-
