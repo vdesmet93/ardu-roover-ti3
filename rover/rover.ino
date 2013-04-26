@@ -104,8 +104,4 @@ void loop()
   checkDirection();
   checkSpeed();
   checkKillswitch();
-  Serial.println("Pioneer Data: ");
-  readFromRover();
 }
-
-
