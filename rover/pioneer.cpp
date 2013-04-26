@@ -22,7 +22,7 @@ void initializeConnection()
   delay(PACKET_DELAY);
   sendPacket(BUMPSTALL, 0);
   delay(PACKET_DELAY);
-  
+
   sendPacket(ENABLE, 1);
   delay(PACKET_DELAY);
 }
@@ -182,5 +182,154 @@ void readFromRover()
     sprintf(str, "%x ", i);
     Serial.println(str);
   }
+}
+
+void receiveData()
+{
+  byte bytesRead = (byte)stream.Read(receivedBytes, byteCounter, Messages.MaxSize - byteCounter);
+  byteCounter += bytesRead;
+  switch (Messages.CheckMessage(receivedBytes, byteCounter))
+  {
+  case MessageCorrectness.CompleteAndCorrect:
+    procesPacket(receivedBytes);
+    byteCounter = 0;
+    break;
+  case MessageCorrectness.Incorrect:
+    byteCounter = 0;
+    PacketsDropped++;
+    if (IncorrectMessage != null)
+      IncorrectMessage(this, new EventArgs());
+    break;
+  case MessageCorrectness.NotComplete:
+    //wait for to be complete of incorrect
+    Console.Out.WriteLine("notcomplete");
+    break;
+  }
+}
+
+void int CheckMessage(byte[] receivedBytes, byte count)
+{
+  //check headers
+  if (receivedBytes[PosHeader1] != Header1)
+  {
+    return MESSAGE_INCORRECT;
+  }
+  if (count < HeaderSize)
+  {
+    return MESSAGE_INCOMPLETE;
+  }
+  if (receivedBytes[PosHeader2] != Header2)
+  {
+    return MESSAGE_INCORRECT;
+  }
+
+  //check minimal size of a message
+  if (count < MinMessageSizeRecieve)
+  {
+    return MESSAGE_INCOMPLETE;
+  }
+
+  //check if all bytes are recieved
+  if( count < receivedBytes[PosCount]+3)
+  {
+    return MESSAGE_INCOMPLETE;
+  }
+
+  //calculate checksum and check
+  int calculatedChecksum = calcChecksum(receivedBytes);
+  int recievedCheckSum = (receivedBytes[count - 2] << 8) | receivedBytes[count - 1];
+  if (calculatedChecksum != recievedCheckSum)
+  {
+    return MessageCorrectness.Incorrect;
+  }
+  return MessageCorrectness.CompleteAndCorrect;
+}
+
+private void procesPacket(byte[] newData)
+{
+  MessageCommandRecieve t = Messages.GetMessageType(newData);
+  switch (t)
+  {
+  case MessageCommandRecieve.SipMoving:
+  case MessageCommandRecieve.SipStopped:
+    if (NewSipMessage != null)
+    {
+      NewSipMessage(this, new NewMessageEventArgs()
+      {
+        Message = Messages.ConvertToSipMessage(newData)
+      }
+      );
+    }
+    break;
+  case MessageCommandRecieve.Sync0:
+  case MessageCommandRecieve.Sync1:
+    InitilizeFlag.Set();
+    break;
+  case MessageCommandRecieve.Sync2:
+    Sync2Message sync2Message = Messages.ConvertToSync2Message(newData);
+    this.Name = sync2Message.Name;
+    this.Type = sync2Message.Type;
+    this.SubType = sync2Message.Subtype;
+    InitilizeFlag.Set();
+    break;
+  default:
+    Console.WriteLine("Unkown message recieved of type: {0}", t);
+    break;
+  }
+}
+
+public static SipMessage ConvertToSipMessage(byte[] receivedBytes)
+{
+  SipMessage message = new SipMessage();
+  message.MotorStatus = receivedBytes[PosCommand] == 0x32 ? MotorsStatus.Stopped : MotorsStatus.Moving;
+  message.XPos	= receivedBytes[PosSipXPos1];
+  message.XPos	|= receivedBytes[PosSipXPos2] << 8;
+  message.YPos	= receivedBytes[PosSipYPos1];
+  message.YPos	|= receivedBytes[PosSipYPos2] << 8;
+  message.ThPos	= receivedBytes[PosSipThPos1];
+  message.ThPos	|= receivedBytes[PosSipThPos2] << 8;
+  message.LVel	= receivedBytes[PosSipLVel1];
+  message.LVel	|= receivedBytes[PosSipLVel2] << 8;
+  message.RVel	= receivedBytes[PosSipRVel1];
+  message.RVel	|= receivedBytes[PosSipRVel2] << 8;
+  message.Battery = receivedBytes[PosSipBattery];
+  message.StallAndBumper = receivedBytes[PosSipStallAndBumpers1];
+  message.StallAndBumper |= (ushort)(receivedBytes[PosSipStallAndBumpers2] << 8);
+  message.Control = receivedBytes[PosSipControl1];
+  message.Control |= receivedBytes[PosSipControl2] << 8;
+  message.Flags = receivedBytes[PosSipFlags1];
+  message.Flags = (ushort) (receivedBytes[PosSipFlags2] << 8);
+  message.compass = receivedBytes[PosSipCompass];
+
+  int numberOfSensors = receivedBytes[PosSipSonarCount];
+  message.Sonar = new SonarValue[numberOfSensors];
+  int index = PosSipSonarBegin;
+  for (int i = 0; i < numberOfSensors; ++i)
+  {
+    byte sensorNumber = receivedBytes[index++];
+    byte sensorLValue = receivedBytes[index++];
+    byte sensorHValue = receivedBytes[index++];
+    ushort sensorValue = (ushort)(sensorLValue + (sensorHValue << 8));
+    message.Sonar[i] = new SonarValue()
+    {
+      SonarNumber = sensorNumber,
+      Range = sensorValue
+    };
+  }
+
+  message.GripState = receivedBytes[index + PosSipGripState - PosSipSonarBegin];
+  message.AnPort = receivedBytes[index + PosSipAnPort - PosSipSonarBegin];
+  message.Analog = receivedBytes[index + PosSipAnalog - PosSipSonarBegin];
+  message.DigIn = receivedBytes[index + PosSipDigIn - PosSipSonarBegin];
+  message.DigOut = receivedBytes[index + PosSipDigOut - PosSipSonarBegin];
+  message.BatteryX10 = receivedBytes[index + PosSipBatteryX10_1 - PosSipSonarBegin];
+  message.BatteryX10 |= receivedBytes[index + PosSipBatteryX10_2 - PosSipSonarBegin] << 8;
+  message.ChargeState = receivedBytes[index + PosSipChargeState - PosSipSonarBegin];
+  message.RotVel = receivedBytes[index + PosSipRotVel1 - PosSipSonarBegin];
+  message.RotVel |= receivedBytes[index + PosSipRotVel2 - PosSipSonarBegin] << 8;
+  message.FaultFlags = receivedBytes[index + PosSipFaultFlags1 - PosSipSonarBegin];
+  message.FaultFlags |= receivedBytes[index + PosSipFaultFlags2 - PosSipSonarBegin] << 8;
+
+  return message;
 }
 
