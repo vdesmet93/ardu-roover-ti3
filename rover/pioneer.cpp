@@ -283,10 +283,6 @@ struct SipMessage ConvertToSipMessage(byte receivedBytes[])
   message.batteryX10 = receivedBytes[index + POS_SIP_BATTERY_1 - POS_SIP_SONAR_BEGIN];
   message.batteryX10 |= receivedBytes[index + POS_SIP_BATTERY_2 - POS_SIP_SONAR_BEGIN] << 8;
   message.chargeState = receivedBytes[index + POS_SIP_CHARGE_STATE - POS_SIP_SONAR_BEGIN];
-  message.rotVel = receivedBytes[index + POS_SIP_ROT_VEL_1 - POS_SIP_SONAR_BEGIN];
-  message.rotVel |= receivedBytes[index + POS_SIP_ROT_VEL_2 - POS_SIP_SONAR_BEGIN] << 8;
-  message.faultFlags = receivedBytes[index + POS_SIP_FAULT_FLAGS_1 - POS_SIP_SONAR_BEGIN];
-  message.faultFlags |= receivedBytes[index + POS_SIP_FAULT_FLAGS_2 - POS_SIP_SONAR_BEGIN] << 8;
 
   return message;
 }
@@ -296,6 +292,7 @@ void readFromRover()
   while(softSerial.available() > 0)
   {
     int i = softSerial.read();
+    
     char str[256];
     sprintf(str, "%x ", i);
     Serial.println(str);
