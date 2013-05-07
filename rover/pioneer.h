@@ -7,7 +7,10 @@ void sendPacket(char command, char* argument, int size);
 void enableSonar();
 void sendSonarSpeed(int interval);
 int writeSerial(unsigned char* buf, int length);
+void receiveData();
 int checkMessage(unsigned char receivedBytes[], int count);
+struct SipMessage ConvertToSipMessage(char receivedBytes[]);
+void procesPacket(unsigned char newData[]);
 void readFromRover();
 
 struct SipMessage {

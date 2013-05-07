@@ -196,7 +196,8 @@ void receiveData()
   switch(checkMessage(receivedBytes, bytesRead))
   {
   case MESSAGE_COMPLETE:
-    //  procesPacket(receivedBytes);
+    procesPacket(receivedBytes);
+    Serial.println("Complete");
     //    byteCounter = 0;
     break;
   case MESSAGE_INCORRECT:
@@ -206,6 +207,7 @@ void receiveData()
     //      IncorrectMessage(this, new EventArgs());
     break;
   case MESSAGE_INCOMPLETE:
+    Serial.println("Incomplete");
     //wait for to be complete of incorrect
     //    Console.Out.WriteLine("notcomplete");
     break;
@@ -241,7 +243,7 @@ int checkMessage(unsigned char receivedBytes[], int count)
   return MESSAGE_COMPLETE;
 }
 
-struct SipMessage ConvertToSipMessage(byte receivedBytes[])
+struct SipMessage ConvertToSipMessage(unsigned char receivedBytes[])
 {
   struct SipMessage message;
   message.motorStatus = receivedBytes[POS_COMMAND] == 0x32 ? SIP_MOTOR_STOPPED : SIP_MOTOR_MOVING;
@@ -265,7 +267,7 @@ struct SipMessage ConvertToSipMessage(byte receivedBytes[])
   message.compass = receivedBytes[POS_SIP_COMPASS];
 
   int numberOfSensors = receivedBytes[POS_SIP_SONAR_COUNT];
-  message.sonar = new int[numberOfSensors];
+  message.sonar = (int *) malloc(sizeof(int) * numberOfSensors);
   int index = POS_SIP_SONAR_BEGIN;
   for (int i = 0; i < numberOfSensors; ++i)
   {
@@ -288,12 +290,12 @@ struct SipMessage ConvertToSipMessage(byte receivedBytes[])
   return message;
 }
 
-byte getMessageType(byte receivedBytes[])
+byte getMessageType(unsigned char receivedBytes[])
 {
   return receivedBytes[POS_COMMAND];
 }
 
-void procesPacket(byte newData[])
+void procesPacket(unsigned char newData[])
 {
   byte t = getMessageType(newData);
   switch (t)

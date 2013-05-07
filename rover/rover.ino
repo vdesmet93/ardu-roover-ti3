@@ -99,9 +99,9 @@ void checkKillswitch()
 void loop()
 {
   sendPacket(PULSE);
-  
   checkAngle();
   checkDirection();
   checkSpeed();
   checkKillswitch();
+  receiveData();
 }
