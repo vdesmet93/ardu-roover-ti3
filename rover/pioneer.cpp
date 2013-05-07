@@ -6,6 +6,7 @@
 #include "defines.h"
 
 SoftwareSerial softSerial(RX, TX);
+struct SipMessage lastMessage;
 
 void initializeConnection()
 {
@@ -287,15 +288,51 @@ struct SipMessage ConvertToSipMessage(byte receivedBytes[])
   return message;
 }
 
+byte getMessageType(byte receivedBytes[])
+{
+  return receivedBytes[POS_COMMAND];
+}
+
+void procesPacket(byte newData[])
+{
+  byte t = getMessageType(newData);
+  switch (t)
+  {
+  case MESSAGECOMMANDRECEIVE_SIPMOVING:
+  case MESSAGECOMMANDRECEIVE_SIPSTOPPED:
+    {
+      lastMessage = ConvertToSipMessage(newData);
+      break;
+    }
+  case MESSAGECOMMANDRECEIVE_SYNC0:
+  case MESSAGECOMMANDRECEIVE_SYNC1:
+    /*InitilizeFlag.Set();*/
+    break;
+  case MESSAGECOMMANDRECEIVE_SYNC2:
+    /*Sync2Message sync2Message = Messages.ConvertToSync2Message(newData);
+     this.Name = sync2Message.Name;
+     this.Type = sync2Message.Type;
+     this.SubType = sync2Message.Subtype;
+     InitilizeFlag.Set();*/
+    break;
+  default:
+    /*Console.WriteLine("Unkown message recieved of type: {0}", t);*/
+    break;
+  }
+}
+
 void readFromRover()
 {
   while(softSerial.available() > 0)
   {
     int i = softSerial.read();
-    
+
     char str[256];
     sprintf(str, "%x ", i);
     Serial.println(str);
   }
 }
+
+
+
 
