@@ -22,4 +22,15 @@ struct SipMessage {
   int control;
   int flags;
   int compass;
+  int* sonar;
+  
+  int gripState;
+  int anPort;
+  int analog;
+  int digIn;
+  int digOut;
+  int batteryX10;
+  int chargeState;
+  int rotVel;
+  int faultFlags;
 };

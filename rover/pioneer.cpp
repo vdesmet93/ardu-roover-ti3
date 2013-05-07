@@ -262,36 +262,32 @@ struct SipMessage ConvertToSipMessage(byte receivedBytes[])
   message.flags = receivedBytes[POS_SIP_FLAGS_1];
   message.flags = (unsigned char) (receivedBytes[POS_SIP_FLAGS_2] << 8);
   message.compass = receivedBytes[POS_SIP_COMPASS];
-  /**
-   * int numberOfSensors = receivedBytes[POS_SIP_SonarCount];
-   * message.Sonar = new SonarValue[numberOfSensors];
-   * int index = POS_SIP_SonarBegin;
-   * for (int i = 0; i < numberOfSensors; ++i)
-   * {
-   * byte sensorNumber = receivedBytes[index++];
-   * byte sensorLValue = receivedBytes[index++];
-   * byte sensorHValue = receivedBytes[index++];
-   * ushort sensorValue = (ushort)(sensorLValue + (sensorHValue << 8));
-   * message.Sonar[i] = new SonarValue()
-   * {
-   * SonarNumber = sensorNumber,
-   * Range = sensorValue
-   * };
-   * }
-   * 
-   * message.GripState = receivedBytes[index + POS_SIP_GripState - POS_SIP_SonarBegin];
-   * message.AnPort = receivedBytes[index + POS_SIP_AnPort - POS_SIP_SonarBegin];
-   * message.Analog = receivedBytes[index + POS_SIP_Analog - POS_SIP_SonarBegin];
-   * message.DigIn = receivedBytes[index + POS_SIP_DigIn - POS_SIP_SonarBegin];
-   * message.DigOut = receivedBytes[index + POS_SIP_DigOut - POS_SIP_SonarBegin];
-   * message.BatteryX10 = receivedBytes[index + POS_SIP_BatteryX10_1 - POS_SIP_SonarBegin];
-   * message.BatteryX10 |= receivedBytes[index + POS_SIP_BatteryX10_2 - POS_SIP_SonarBegin] << 8;
-   * message.ChargeState = receivedBytes[index + POS_SIP_ChargeState - POS_SIP_SonarBegin];
-   * message.RotVel = receivedBytes[index + POS_SIP_RotVel1 - POS_SIP_SonarBegin];
-   * message.RotVel |= receivedBytes[index + POS_SIP_RotVel2 - POS_SIP_SonarBegin] << 8;
-   * message.FaultFlags = receivedBytes[index + POS_SIP_FaultFlags1 - POS_SIP_SonarBegin];
-   * message.FaultFlags |= receivedBytes[index + POS_SIP_FaultFlags2 - POS_SIP_SonarBegin] << 8;
-   **/
+
+  int numberOfSensors = receivedBytes[POS_SIP_SONAR_COUNT];
+  message.sonar = new int[numberOfSensors];
+  int index = POS_SIP_SONAR_BEGIN;
+  for (int i = 0; i < numberOfSensors; ++i)
+  {
+    byte sensorNumber = receivedBytes[index++];
+    byte sensorLValue = receivedBytes[index++];
+    byte sensorHValue = receivedBytes[index++];
+    int sensorValue = (int)(sensorLValue + (sensorHValue << 8));
+    message.sonar[i] = sensorValue;
+  }
+
+  message.gripState = receivedBytes[index + POS_SIP_GRIP_STATE - POS_SIP_SONAR_BEGIN];
+  message.anPort = receivedBytes[index + POS_SIP_AN_PORT - POS_SIP_SONAR_BEGIN];
+  message.analog = receivedBytes[index + POS_SIP_ANALOG - POS_SIP_SONAR_BEGIN];
+  message.digIn = receivedBytes[index + POS_SIP_DIG_IN - POS_SIP_SONAR_BEGIN];
+  message.digOut = receivedBytes[index + POS_SIP_DIG_OUT - POS_SIP_SONAR_BEGIN];
+  message.batteryX10 = receivedBytes[index + POS_SIP_BATTERY_1 - POS_SIP_SONAR_BEGIN];
+  message.batteryX10 |= receivedBytes[index + POS_SIP_BATTERY_2 - POS_SIP_SONAR_BEGIN] << 8;
+  message.chargeState = receivedBytes[index + POS_SIP_CHARGE_STATE - POS_SIP_SONAR_BEGIN];
+  message.rotVel = receivedBytes[index + POS_SIP_ROT_VEL_1 - POS_SIP_SONAR_BEGIN];
+  message.rotVel |= receivedBytes[index + POS_SIP_ROT_VEL_2 - POS_SIP_SONAR_BEGIN] << 8;
+  message.faultFlags = receivedBytes[index + POS_SIP_FAULT_FLAGS_1 - POS_SIP_SONAR_BEGIN];
+  message.faultFlags |= receivedBytes[index + POS_SIP_FAULT_FLAGS_2 - POS_SIP_SONAR_BEGIN] << 8;
+
   return message;
 }
 
@@ -305,3 +301,4 @@ void readFromRover()
     Serial.println(str);
   }
 }
+
