@@ -41,7 +41,7 @@ int getChecksum(unsigned char* buf)
     i += 2;
   }
   if (n > 0)
-    c ^= (int)((unsigned char) buf[i]); //TODO: Replace with ^= if possible.
+    c ^= (int)((unsigned char) buf[i]); 
   return c;
 }
 
@@ -183,32 +183,100 @@ int writeSerial(unsigned char* buf, int length)
   return length;
 }
 
+unsigned char softSerialRead() {
+ if(softSerial.available())
+   return softSerial.read(); 
+  else {
+    delay(5);
+    return softSerial.read();
+  }
+}
 void receiveData()
 {
   unsigned char receivedBytes[MAX_DATA_SIZE];
   int bytesRead = 0;
-  while(softSerial.available() > 0 && bytesRead < MAX_DATA_SIZE)
-  {
-    receivedBytes[bytesRead++] = softSerial.read();
-  }
 
-  switch(checkMessage(receivedBytes, bytesRead))
-  {
-  case MESSAGE_COMPLETE:
-    //  procesPacket(receivedBytes);
-    //    byteCounter = 0;
-    break;
-  case MESSAGE_INCORRECT:
-    //    byteCounter = 0;
-    //    P1acketsDropped++;
-    //    if (IncorrectMessage != null)
-    //      IncorrectMessage(this, new EventArgs());
-    break;
-  case MESSAGE_INCOMPLETE:
-    //wait for to be complete of incorrect
-    //    Console.Out.WriteLine("notcomplete");
-    break;
+  while(softSerial.available()) {
+    unsigned char headerA = softSerialRead();
+    if(headerA == HEADER_A) {
+      // First header byte is valid
+      receivedBytes[0] = headerA;
+
+      unsigned char headerB = softSerialRead();
+      if(headerB == HEADER_B) {
+        // Second header byte is also valid
+        receivedBytes[1] = headerB;
+
+        unsigned char length = softSerialRead();
+        Serial.print("Packet Length:");
+        Serial.println(length);
+        receivedBytes[2] = length;
+        
+        int i = 0;
+        while(i < (length)) {
+          unsigned char ch = softSerialRead();
+          if(ch != -1) {
+            receivedBytes[i + PACKET_HEADER_LENGTH] = ch;
+            i++;
+          } 
+          else {
+            delay(2);
+          }
+        }
+        bytesRead = i + PACKET_HEADER_LENGTH;
+      } 
+      else 
+        // HEADER_B is invalid
+      continue;
+
+
+    } 
+    else 
+      // HEADER_A is invalid
+    continue;
+
+
+    // Check the message
+    switch(checkMessage(receivedBytes, bytesRead))
+    {
+    case MESSAGE_COMPLETE:
+      Serial.print("Message complete. Size: ");
+      Serial.println(bytesRead);
+      //  procesPacket(receivedBytes);
+      //    byteCounter = 0;
+      break;
+    case MESSAGE_INCORRECT:
+      Serial.println("Message incorrect");
+      for(int i = 0; i < bytesRead; i++) {
+        char str[3];
+        sprintf(str, "%x ", receivedBytes[i]);
+        Serial.print(str);
+      }
+      Serial.println();
+      //    byteCounter = 0;
+      //    P1acketsDropped++;
+      //    if (IncorrectMessage != null)
+      //      IncorrectMessage(this, new EventArgs());
+      break;
+    case MESSAGE_INCOMPLETE:
+      Serial.println("Message incomplete");
+      for(int i = 0; i < bytesRead; i++) {
+        char str[3];
+        sprintf(str, "%x ", receivedBytes[i]);
+        Serial.print(str);
+      }
+      Serial.println();
+      //wait for to be complete of incorrect
+      //    Console.Out.WriteLine("notcomplete");
+      break;
+    }
   }
+  //while(softSerial.available() > 0 && bytesRead < MAX_DATA_SIZE)
+  //{
+  // receivedBytes[bytesRead++] = softSerial.read();
+  //}
+
+
 }
 
 int checkMessage(unsigned char receivedBytes[], int count)
@@ -225,14 +293,19 @@ int checkMessage(unsigned char receivedBytes[], int count)
   }
   //check if all bytes are recieved
   int packetSize = receivedBytes[PACKET_COUNT_POSITION];
-  if( count == packetSize + PACKET_HEADER_LENGTH)
+  if( count + 1 == packetSize + PACKET_HEADER_LENGTH)
   {
     return MESSAGE_INCOMPLETE;
   }
 
   //calculate checksum and check
   int calculatedChecksum = getChecksum(receivedBytes);
-  int recievedCheckSum = (receivedBytes[count - 2] << 8) | receivedBytes[count - 1];
+  int recievedCheckSum = (receivedBytes[count - 2] << BYTE_SHIFT) | receivedBytes[count - 1];
+  Serial.print("Calculated checksum: ");
+  Serial.println(calculatedChecksum);
+  Serial.print("Received checksum: ");
+  Serial.println(recievedCheckSum);
+  
   if (calculatedChecksum != recievedCheckSum)
   {
     return MESSAGE_INCORRECT;
@@ -292,10 +365,14 @@ void readFromRover()
   while(softSerial.available() > 0)
   {
     int i = softSerial.read();
-    
+
     char str[256];
     sprintf(str, "%x ", i);
     Serial.println(str);
   }
 }
+
+
+
+
 

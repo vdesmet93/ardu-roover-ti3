@@ -11,6 +11,8 @@
 #define ARG_LENGTH  3
 #define HEADER_A  0xFA
 #define HEADER_B  0xFB
+#define HEADER_LENGTH 2
+#define CHECKSUM_LENGTH 2
 #define JOYSTICK_RIGHT_X  A0
 #define JOYSTICK_RIGHT_Y  A1
 #define JOYSTICK_LEFT_Y  A2

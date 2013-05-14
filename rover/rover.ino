@@ -104,4 +104,6 @@ void loop()
   checkDirection();
   checkSpeed();
   checkKillswitch();
+  
+  receiveData();
 }
