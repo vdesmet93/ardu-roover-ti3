@@ -184,7 +184,7 @@ int writeSerial(unsigned char* buf, int length)
   return length;
 }
 
-unsigned char softSerialRead() {
+inline unsigned char softSerialRead() {
  if(softSerial.available())
    return softSerial.read(); 
   else {
@@ -209,8 +209,6 @@ void receiveData()
         receivedBytes[1] = headerB;
 
         unsigned char length = softSerialRead();
-        Serial.print("Packet Length:");
-        Serial.println(length);
         receivedBytes[2] = length;
         
         int i = 0;
@@ -241,19 +239,19 @@ void receiveData()
     switch(checkMessage(receivedBytes, bytesRead))
     {
     case MESSAGE_COMPLETE:
-      Serial.print("Message complete. Size: ");
-      Serial.println(bytesRead);
-      //  procesPacket(receivedBytes);
-      //    byteCounter = 0;
+//      Serial.print("Message complete.");
+      lastMessage = convertToSipMessage(receivedBytes);
+      Serial.print("Value: ");
+      Serial.println(*(lastMessage.sonar));
       break;
     case MESSAGE_INCORRECT:
       Serial.println("Message incorrect");
-      for(int i = 0; i < bytesRead; i++) {
-        char str[3];
-        sprintf(str, "%x ", receivedBytes[i]);
-        Serial.print(str);
-      }
-      Serial.println();
+      //for(int i = 0; i < bytesRead; i++) {
+      //  char str[3];
+      //  sprintf(str, "%x ", receivedBytes[i]);
+      //  Serial.print(str);
+      //}
+      //Serial.println();
       //    byteCounter = 0;
       //    P1acketsDropped++;
       //    if (IncorrectMessage != null)
@@ -261,12 +259,12 @@ void receiveData()
       break;
     case MESSAGE_INCOMPLETE:
       Serial.println("Message incomplete");
-      for(int i = 0; i < bytesRead; i++) {
-        char str[3];
-        sprintf(str, "%x ", receivedBytes[i]);
-        Serial.print(str);
-      }
-      Serial.println();
+      //for(int i = 0; i < bytesRead; i++) {
+       // char str[3];
+        //sprintf(str, "%x ", receivedBytes[i]);
+        //Serial.print(str);
+      //}
+      //Serial.println();
       //wait for to be complete of incorrect
       //    Console.Out.WriteLine("notcomplete");
       break;
@@ -302,10 +300,6 @@ int checkMessage(unsigned char receivedBytes[], int count)
   //calculate checksum and check
   int calculatedChecksum = getChecksum(receivedBytes);
   int recievedCheckSum = (receivedBytes[count - 2] << BYTE_SHIFT) | receivedBytes[count - 1];
-  Serial.print("Calculated checksum: ");
-  Serial.println(calculatedChecksum);
-  Serial.print("Received checksum: ");
-  Serial.println(recievedCheckSum);
   
   if (calculatedChecksum != recievedCheckSum)
   {
@@ -314,7 +308,7 @@ int checkMessage(unsigned char receivedBytes[], int count)
   return MESSAGE_COMPLETE;
 }
 
-struct SipMessage ConvertToSipMessage(unsigned char receivedBytes[])
+struct SipMessage convertToSipMessage(unsigned char receivedBytes[])
 {
   struct SipMessage message;
   message.motorStatus = receivedBytes[POS_COMMAND] == 0x32 ? SIP_MOTOR_STOPPED : SIP_MOTOR_MOVING;
