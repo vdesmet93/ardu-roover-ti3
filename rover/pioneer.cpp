@@ -6,6 +6,7 @@
 #include "defines.h"
 
 SoftwareSerial softSerial(RX, TX);
+struct SipMessage lastMessage;
 
 void initializeConnection()
 {
@@ -313,7 +314,7 @@ int checkMessage(unsigned char receivedBytes[], int count)
   return MESSAGE_COMPLETE;
 }
 
-struct SipMessage ConvertToSipMessage(byte receivedBytes[])
+struct SipMessage ConvertToSipMessage(unsigned char receivedBytes[])
 {
   struct SipMessage message;
   message.motorStatus = receivedBytes[POS_COMMAND] == 0x32 ? SIP_MOTOR_STOPPED : SIP_MOTOR_MOVING;
@@ -337,7 +338,7 @@ struct SipMessage ConvertToSipMessage(byte receivedBytes[])
   message.compass = receivedBytes[POS_SIP_COMPASS];
 
   int numberOfSensors = receivedBytes[POS_SIP_SONAR_COUNT];
-  message.sonar = new int[numberOfSensors];
+  message.sonar = (int *) malloc(sizeof(int) * numberOfSensors);
   int index = POS_SIP_SONAR_BEGIN;
   for (int i = 0; i < numberOfSensors; ++i)
   {
@@ -360,6 +361,40 @@ struct SipMessage ConvertToSipMessage(byte receivedBytes[])
   return message;
 }
 
+byte getMessageType(unsigned char receivedBytes[])
+{
+  return receivedBytes[POS_COMMAND];
+}
+
+/**
+void procesPacket(unsigned char newData[])
+{
+  byte t = getMessageType(newData);
+  switch (t)
+  {
+  case MESSAGECOMMANDRECEIVE_SIPMOVING:
+  case MESSAGECOMMANDRECEIVE_SIPSTOPPED:
+    {
+      lastMessage = ConvertToSipMessage(newData);
+      break;
+    }
+  case MESSAGECOMMANDRECEIVE_SYNC0:
+  case MESSAGECOMMANDRECEIVE_SYNC1:
+    /*InitilizeFlag.Set();*//**
+    break;
+  case MESSAGECOMMANDRECEIVE_SYNC2:
+    /*Sync2Message sync2Message = Messages.ConvertToSync2Message(newData);
+     this.Name = sync2Message.Name;
+     this.Type = sync2Message.Type;
+     this.SubType = sync2Message.Subtype;
+     InitilizeFlag.Set();*//**
+    break;
+  default:
+    /*Console.WriteLine("Unkown message recieved of type: {0}", t);*//**
+    break;
+  }
+}**/
+
 void readFromRover()
 {
   while(softSerial.available() > 0)
@@ -371,8 +406,3 @@ void readFromRover()
     Serial.println(str);
   }
 }
-
-
-
-
-
