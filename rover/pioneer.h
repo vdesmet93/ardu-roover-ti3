@@ -9,6 +9,8 @@ void sendSonarSpeed(int interval);
 int writeSerial(unsigned char* buf, int length);
 int checkMessage(unsigned char receivedBytes[], int count);
 void receiveData();
+void shiftBytes(int startPosOfPacket);
+void parseMessage();
 struct SipMessage convertToSipMessage(unsigned char receivedBytes[]);
 
 struct SipMessage {

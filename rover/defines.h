@@ -46,7 +46,7 @@
 
 #define SIP_MOTOR_STOPPED 0
 #define SIP_MOTOR_MOVING 1
-#define MAX_DATA_SIZE 512
+#define MAX_DATA_SIZE 128
 
 #define POS_HEADER_A 0
 #define POS_HEADER_B 1

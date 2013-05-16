@@ -8,6 +8,10 @@
 SoftwareSerial softSerial(RX, TX);
 struct SipMessage lastMessage;
 
+unsigned char receivedBytes[MAX_DATA_SIZE];
+int bytesRead = 0;
+int packetSize = 0;
+
 void initializeConnection()
 {
   softSerial.begin(BAUD_RATE);
@@ -18,12 +22,14 @@ void initializeConnection()
   sendPacket(SYNC2);
   delay(SYNC_DELAY);
   sendPacket(OPEN);
-  delay(SYNC_DELAY); 
+  delay(SYNC_DELAY);
 
-  sendPacket(BUMPSTALL, 0);
-  delay(PACKET_DELAY);
   sendPacket(ENABLE, 1);
   delay(PACKET_DELAY);
+
+  sendPacket(SONAR, 0);
+  delay(PACKET_DELAY);
+
 }
 
 /**
@@ -165,12 +171,6 @@ void sendPacket(char command, char* argument, int size)
   writeSerial(buf, bytes);
 }
 
-void enableSonar()
-{
-  sendPacket(SONAR, 1);
-  delay(PACKET_DELAY);
-}
-
 void sendSonarSpeed(int interval)
 {
   sendPacket(SONARCYCLE, interval);
@@ -184,128 +184,138 @@ int writeSerial(unsigned char* buf, int length)
   return length;
 }
 
-inline unsigned char softSerialRead() {
- if(softSerial.available())
-   return softSerial.read(); 
-  else {
-    delay(5);
-    return softSerial.read();
-  }
-}
 void receiveData()
 {
-  unsigned char receivedBytes[MAX_DATA_SIZE];
-  int bytesRead = 0;
+  while(softSerial.available() > 0) {
 
-  while(softSerial.available() > 0) {  
-    bytesRead = 0;
-    unsigned char headerA = softSerialRead();
-    if(headerA == HEADER_A) {
-      // First header byte is valid
-      receivedBytes[POS_HEADER_A] = headerA;
+    receivedBytes[bytesRead] = softSerial.read();
 
-      unsigned char headerB = softSerialRead();
-      if(headerB == HEADER_B) {
-        // Second header byte is also valid
-        receivedBytes[POS_HEADER_B] = headerB;
-
-        unsigned char length = softSerialRead();
-        receivedBytes[PACKET_COUNT_POSITION] = length;
-        
-        int i = 0;
-        while(i < (length)) {
-          unsigned char ch = softSerialRead();
-          if(ch != -1) {
-            receivedBytes[i + PACKET_HEADER_LENGTH] = ch;
-            i++;
-          } 
-          else {
-            delay(2);
-          }
-        }
-        bytesRead = i + PACKET_HEADER_LENGTH;
-      } 
-      else 
-        // HEADER_B is invalid
-      continue;
-
-
-    } 
-    else 
-      // HEADER_A is invalid
-    continue;
-
-
-    // Check the message
-    switch(checkMessage(receivedBytes, bytesRead))
+    if(bytesRead == POS_HEADER_A && receivedBytes[bytesRead] != HEADER_A) 
     {
-    case MESSAGE_COMPLETE:
-//      Serial.print("Message complete.");
-      free(lastMessage.sonar);
-      lastMessage = convertToSipMessage(receivedBytes);
-      
-      Serial.print("Value: ");
-      Serial.println(*(lastMessage.sonar));
-      break;
-    case MESSAGE_INCORRECT:
-      Serial.println("Message incorrect");
-      
-      //for(int i = 0; i < bytesRead; i++) {
-      //  char str[3];
-      //  sprintf(str, "%x ", receivedBytes[i]);
-      //  Serial.print(str);
-      //}
-      //Serial.println();
-      //    byteCounter = 0;
-      //    P1acketsDropped++;
-      //    if (IncorrectMessage != null)
-      //      IncorrectMessage(this, new EventArgs());
-      break;
-    case MESSAGE_INCOMPLETE:
-      Serial.println("Message incomplete");
-      //for(int i = 0; i < bytesRead; i++) {
-       // char str[3];
-        //sprintf(str, "%x ", receivedBytes[i]);
-        //Serial.print(str);
-      //}
-      //Serial.println();
-      //wait for to be complete of incorrect
-      //    Console.Out.WriteLine("notcomplete");
-      break;
+      continue;
+    }
+    else if(bytesRead == POS_HEADER_B && receivedBytes[bytesRead] != HEADER_B) 
+    {
+      bytesRead = 0;
+      continue;
+    }
+    else if(bytesRead == PACKET_COUNT_POSITION) 
+    {
+      packetSize = PACKET_HEADER_LENGTH + receivedBytes[bytesRead];
+    }
+
+    bytesRead++;
+
+    if(bytesRead == packetSize)
+    {
+      // Packet is complete
+      parseMessage();
     }
   }
-  //while(softSerial.available() > 0 && bytesRead < MAX_DATA_SIZE)
-  //{
-  // receivedBytes[bytesRead++] = softSerial.read();
-  //}
+}
+void parseMessage()
+{
+  // Check the message
+  switch(checkMessage(receivedBytes, bytesRead))
+  {
+  case MESSAGE_COMPLETE:
+//    free(lastMessage.sonar);
+//    lastMessage = convertToSipMessage(receivedBytes);
 
+    //    Serial.print("Value: ");
+    //    Serial.println(*(lastMessage.sonar));
+    Serial.println();
+    for(int i = 0; i < bytesRead; i++) {
+      char str[3];
+      sprintf(str, "%x ", receivedBytes[i]);
+      Serial.print(str);
+    }
+    Serial.println();    
+    Serial.println();
 
+    break;
+  case MESSAGE_INCORRECT:
+    Serial.println("Message incorrect");
+    for(int i = 0; i < bytesRead; i++) {
+      char str[3];
+      sprintf(str, "%x ", receivedBytes[i]);
+      Serial.print(str);
+    }
+    Serial.println();
+
+    // Check for new header bytes in current packet
+    for(int i = HEADER_LENGTH; i < (bytesRead - 1); i++)
+    {
+      if(receivedBytes[i] == HEADER_A &&
+        receivedBytes[i + 1] == HEADER_B) 
+      {
+        shiftBytes(i);
+        return;
+      } 
+    }
+
+    break;
+  case MESSAGE_INCOMPLETE:
+    Serial.println("Message incomplete");
+    //for(int i = 0; i < bytesRead; i++) {
+    // char str[3];
+    //sprintf(str, "%x ", receivedBytes[i]);
+    //Serial.print(str);
+    //}
+    //Serial.println();
+    //wait for to be complete of incorrect
+    //    Console.Out.WriteLine("notcomplete");
+    break;
+  }
+
+  bytesRead = 0;
+  packetSize = 0;
+}
+
+void shiftBytes(int startPosOfPacket)
+{
+  // Valid header found
+  bytesRead -= startPosOfPacket;
+
+  // Move all the bytes
+  for(int i = 0; i < bytesRead; i++)
+  {
+     receivedBytes[i] = receivedBytes[i + startPosOfPacket]; 
+  }
+  
+  // Update Packet Size
+  packetSize = PACKET_HEADER_LENGTH + receivedBytes[PACKET_COUNT_POSITION];
 }
 
 int checkMessage(unsigned char receivedBytes[], int count)
 {
   //check headers
   /**
-  if (receivedBytes[0] != HEADER_A ||
-    receivedBytes[1] != HEADER_B)
-  {
-    return MESSAGE_INCORRECT;
-  }
-  if (count < BASE_PACKET_LENGTH)
-  {
-    return MESSAGE_INCOMPLETE;
-  }
-  //check if all bytes are recieved
-  int packetSize = receivedBytes[PACKET_COUNT_POSITION];
-  if( count + 1 == packetSize + PACKET_HEADER_LENGTH)
-  {
-    return MESSAGE_INCOMPLETE;
-  }**/
+   * if (receivedBytes[0] != HEADER_A ||
+   * receivedBytes[1] != HEADER_B)
+   * {
+   * return MESSAGE_INCORRECT;
+   * }
+   * if (count < BASE_PACKET_LENGTH)
+   * {
+   * return MESSAGE_INCOMPLETE;
+   * }
+   * //check if all bytes are recieved
+   * int packetSize = receivedBytes[PACKET_COUNT_POSITION];
+   * if( count + 1 == packetSize + PACKET_HEADER_LENGTH)
+   * {
+   * return MESSAGE_INCOMPLETE;
+   }**/
 
   //calculate checksum and check
   int calculatedChecksum = getChecksum(receivedBytes);
   int recievedCheckSum = (receivedBytes[count - 2] << BYTE_SHIFT) | receivedBytes[count - 1];
-  
+  Serial.print("Calculated: ");
+  Serial.println(calculatedChecksum);
+
+  Serial.print("Received: ");
+  Serial.println(recievedCheckSum);
+
   if (calculatedChecksum != recievedCheckSum)
   {
     return MESSAGE_INCORRECT;
@@ -366,33 +376,33 @@ byte getMessageType(unsigned char receivedBytes[])
 }
 
 /**
-void procesPacket(unsigned char newData[])
-{
-  byte t = getMessageType(newData);
-  switch (t)
-  {
-  case MESSAGECOMMANDRECEIVE_SIPMOVING:
-  case MESSAGECOMMANDRECEIVE_SIPSTOPPED:
-    {
-      lastMessage = ConvertToSipMessage(newData);
-      break;
-    }
-  case MESSAGECOMMANDRECEIVE_SYNC0:
-  case MESSAGECOMMANDRECEIVE_SYNC1:
-    /*InitilizeFlag.Set();*//**
-    break;
-  case MESSAGECOMMANDRECEIVE_SYNC2:
-    /*Sync2Message sync2Message = Messages.ConvertToSync2Message(newData);
-     this.Name = sync2Message.Name;
-     this.Type = sync2Message.Type;
-     this.SubType = sync2Message.Subtype;
-     InitilizeFlag.Set();*//**
-    break;
-  default:
-    /*Console.WriteLine("Unkown message recieved of type: {0}", t);*//**
-    break;
-  }
-}**/
+ * void procesPacket(unsigned char newData[])
+ * {
+ * byte t = getMessageType(newData);
+ * switch (t)
+ * {
+ * case MESSAGECOMMANDRECEIVE_SIPMOVING:
+ * case MESSAGECOMMANDRECEIVE_SIPSTOPPED:
+ * {
+ * lastMessage = ConvertToSipMessage(newData);
+ * break;
+ * }
+ * case MESSAGECOMMANDRECEIVE_SYNC0:
+ * case MESSAGECOMMANDRECEIVE_SYNC1:
+/*InitilizeFlag.Set();*//**
+ * break;
+ * case MESSAGECOMMANDRECEIVE_SYNC2:
+/*Sync2Message sync2Message = Messages.ConvertToSync2Message(newData);
+ * this.Name = sync2Message.Name;
+ * this.Type = sync2Message.Type;
+ * this.SubType = sync2Message.Subtype;
+ InitilizeFlag.Set();*//**
+ * break;
+ * default:
+/*Console.WriteLine("Unkown message recieved of type: {0}", t);*//**
+ * break;
+ * }
+ }**/
 
 void readFromRover()
 {
@@ -405,3 +415,9 @@ void readFromRover()
     Serial.println(str);
   }
 }
+
+
+
+
+
+

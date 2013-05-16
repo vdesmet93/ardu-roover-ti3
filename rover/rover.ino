@@ -25,7 +25,6 @@ void setup()
   digitalWrite(RX, LOW);
   Serial.begin(BAUD_RATE);
   initializeConnection();
-  enableSonar();
 }
 
 void checkAngle()
@@ -99,10 +98,11 @@ void checkKillswitch()
 void loop()
 {
   sendPacket(PULSE);
+  
   checkAngle();
   checkDirection();
   checkSpeed();
   checkKillswitch();
-
+  
   receiveData();
 }
