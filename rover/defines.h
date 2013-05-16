@@ -48,6 +48,9 @@
 #define SIP_MOTOR_MOVING 1
 #define MAX_DATA_SIZE 512
 
+#define POS_HEADER_A 0
+#define POS_HEADER_B 1
+
 #define POS_COMMAND 3
 #define POS_SIP_XPOS_1 4
 #define POS_SIP_XPOS_2 5

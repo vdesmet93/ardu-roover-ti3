@@ -29,7 +29,7 @@ void initializeConnection()
 /**
  * Checksum generator for the buffer which will be send
  */
-int getChecksum(unsigned char* buf)
+inline int getChecksum(unsigned char* buf)
 {
   int i = 3;
   unsigned char n = buf[2] - 2;
@@ -197,19 +197,20 @@ void receiveData()
   unsigned char receivedBytes[MAX_DATA_SIZE];
   int bytesRead = 0;
 
-  while(softSerial.available()) {
+  while(softSerial.available() > 0) {  
+    bytesRead = 0;
     unsigned char headerA = softSerialRead();
     if(headerA == HEADER_A) {
       // First header byte is valid
-      receivedBytes[0] = headerA;
+      receivedBytes[POS_HEADER_A] = headerA;
 
       unsigned char headerB = softSerialRead();
       if(headerB == HEADER_B) {
         // Second header byte is also valid
-        receivedBytes[1] = headerB;
+        receivedBytes[POS_HEADER_B] = headerB;
 
         unsigned char length = softSerialRead();
-        receivedBytes[2] = length;
+        receivedBytes[PACKET_COUNT_POSITION] = length;
         
         int i = 0;
         while(i < (length)) {
@@ -240,12 +241,15 @@ void receiveData()
     {
     case MESSAGE_COMPLETE:
 //      Serial.print("Message complete.");
+      free(lastMessage.sonar);
       lastMessage = convertToSipMessage(receivedBytes);
+      
       Serial.print("Value: ");
       Serial.println(*(lastMessage.sonar));
       break;
     case MESSAGE_INCORRECT:
       Serial.println("Message incorrect");
+      
       //for(int i = 0; i < bytesRead; i++) {
       //  char str[3];
       //  sprintf(str, "%x ", receivedBytes[i]);
@@ -281,6 +285,7 @@ void receiveData()
 int checkMessage(unsigned char receivedBytes[], int count)
 {
   //check headers
+  /**
   if (receivedBytes[0] != HEADER_A ||
     receivedBytes[1] != HEADER_B)
   {
@@ -295,7 +300,7 @@ int checkMessage(unsigned char receivedBytes[], int count)
   if( count + 1 == packetSize + PACKET_HEADER_LENGTH)
   {
     return MESSAGE_INCOMPLETE;
-  }
+  }**/
 
   //calculate checksum and check
   int calculatedChecksum = getChecksum(receivedBytes);
