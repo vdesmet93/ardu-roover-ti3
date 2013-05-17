@@ -1,11 +1,9 @@
 #include <Arduino.h>
-#include "SoftwareSerial.h"
 
 #include "pioneer.h"
 #include "commands.h"
 #include "defines.h"
 
-SoftwareSerial softSerial(RX, TX);
 struct SipMessage lastMessage;
 
 unsigned char receivedBytes[MAX_DATA_SIZE];
@@ -14,7 +12,6 @@ int packetSize = 0;
 
 void initializeConnection()
 {
-  softSerial.begin(BAUD_RATE);
   sendPacket(SYNC0);
   delay(SYNC_DELAY);
   sendPacket(SYNC1);
@@ -180,15 +177,15 @@ void sendSonarSpeed(int interval)
 int writeSerial(unsigned char* buf, int length)
 {
   for(int i = 0; i < length; i++)
-    softSerial.write(buf[i]);
+    Serial1.write(buf[i]);
   return length;
 }
 
 void receiveData()
 {
-  while(softSerial.available() > 0) {
+  while(Serial1.available() > 0) {
 
-    receivedBytes[bytesRead] = softSerial.read();
+    receivedBytes[bytesRead] = Serial1.read();
 
     if(bytesRead == POS_HEADER_A && receivedBytes[bytesRead] != HEADER_A) 
     {
@@ -406,9 +403,9 @@ byte getMessageType(unsigned char receivedBytes[])
 
 void readFromRover()
 {
-  while(softSerial.available() > 0)
+  while(Serial1.available() > 0)
   {
-    int i = softSerial.read();
+    int i = Serial1.read();
 
     char str[256];
     sprintf(str, "%x ", i);

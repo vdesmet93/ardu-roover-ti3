@@ -1,4 +1,3 @@
-#include "SoftwareSerial.h"
 #include "commands.h"
 #include "pioneer.h"
 #include "defines.h"
@@ -24,6 +23,7 @@ void setup()
   digitalWrite(TX, HIGH);
   digitalWrite(RX, LOW);
   Serial.begin(BAUD_RATE);
+  Serial1.begin(PIONEER_BAUD_RATE);
   initializeConnection();
 }
 
