@@ -88,31 +88,17 @@ bool checkEmergencyFront()
     if(isForcedOverride) 
       threshold = SONAR_SIDE_KS_THRESHOLD;
     else 
-      threshold = SONAR_SIDE_KILLSWITCH_THRESHOLD;
+      threshold = SONAR_KILLSWITCH_THRESHOLD;
       
-    
-  }
-  else if(isForcedOverride) {
-    if(lastMessage.sonar[1] < SONAR_SIDE_KS_THRESHOLD)
+    if(lastMessage.sonar[1] < threshold)
       isDangerous = true;
-    if(lastMessage.sonar[2] < SONAR_SIDE_KS_THRESHOLD)
+    if(lastMessage.sonar[2] < threshold)
       isDangerous = true;
-    else if(lastMessage.sonar[5] < SONAR_SIDE_KS_THRESHOLD)
+    else if(lastMessage.sonar[5] < threshold)
       isDangerous = true;
-    else if(lastMessage.sonar[6] < SONAR_SIDE_KS_THRESHOLD)
+    else if(lastMessage.sonar[6] < threshold)
       isDangerous = true;
   }
-  else { // !isForcedOverride
-  
-  }
-  else if((lastMessage.sonar[2] + lastMessage.sonar[5]) / 2 < SONAR_SIDE_KS_THRESHOLD && isForcedOverride)
-    isDangerous = true;
-  else if((lastMessage.sonar[2] + lastMessage.sonar[5]) / 2 <  SONAR_KILLSWITCH_THRESHOLD && !isForcedOverride)
-    isDangerous = true;
-  else if((lastMessage.sonar[1] + lastMessage.sonar[6]) / 2 < SONAR_SIDE_KS_THRESHOLD && isForcedOverride)
-    isDangerous = true;
-  else if((lastMessage.sonar[1] + lastMessage.sonar[6]) / 2 < SONAR_KILLSWITCH_THRESHOLD && !isForcedOverride)
-    isDangerous = true;
 
   if(isDangerous) 
   {
