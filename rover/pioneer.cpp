@@ -4,7 +4,7 @@
 #include "commands.h"
 #include "defines.h"
 
-struct SipMessage lastMessage;
+
 
 unsigned char receivedBytes[MAX_DATA_SIZE];
 int bytesRead = 0;
@@ -25,6 +25,10 @@ void initializeConnection()
   delay(PACKET_DELAY);
 
   sendPacket(BUMPSTALL, 0);
+  delay(PACKET_DELAY);
+
+  // Sonar cycle, 12ms per sonar unit
+  sendPacket(SONARCYCLE, 12);
   delay(PACKET_DELAY);
 }
 
@@ -216,9 +220,6 @@ void parseMessage()
   switch(checkMessage(receivedBytes, bytesRead))
   {
   case MESSAGE_COMPLETE:
-    Serial.println("Message correct!");
-    Serial.print("Length: ");
-    Serial.println(bytesRead);
     free(lastMessage.sonar);
     lastMessage = convertToSipMessage(receivedBytes);
     break;
@@ -242,6 +243,13 @@ void parseMessage()
     break;
   }
 
+  for(int i = 0; i < 16; i++) {
+    int s = lastMessage.sonar[i];
+    Serial.print(s);    
+    Serial.print(" ");    
+  }
+  Serial.println();
+
   bytesRead = 0;
   packetSize = 0;
 }
@@ -263,11 +271,11 @@ void shiftBytes(int startPosOfPacket)
 
 int checkMessage(unsigned char receivedBytes[], int count)
 {
-  
+
   //calculate checksum and check
   int calculatedChecksum = getChecksum(receivedBytes);
   int recievedCheckSum = (receivedBytes[count - 2] << BYTE_SHIFT) | receivedBytes[count - 1];
-  
+
   if (calculatedChecksum != recievedCheckSum)
   {
     return MESSAGE_INCORRECT;
@@ -307,7 +315,8 @@ struct SipMessage convertToSipMessage(unsigned char receivedBytes[])
     byte sensorLValue = receivedBytes[index++];
     byte sensorHValue = receivedBytes[index++];
     int sensorValue = (int)(sensorLValue + (sensorHValue << 8));
-    message.sonar[i] = sensorValue;
+    if(sensorNumber >= 0 && sensorNumber < 16)
+      message.sonar[sensorNumber] = sensorValue;
   }
 
   message.gripState = receivedBytes[index + POS_SIP_GRIP_STATE - POS_SIP_SONAR_BEGIN];
@@ -338,6 +347,9 @@ void readFromRover()
     Serial.println(str);
   }
 }
+
+
+
 
 
 
