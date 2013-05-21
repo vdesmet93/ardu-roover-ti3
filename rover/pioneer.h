@@ -102,5 +102,5 @@ struct SipMessage {
   int chargeState;
 };
 
-struct SipMessage lastMessage;
+extern struct SipMessage lastMessage;
 

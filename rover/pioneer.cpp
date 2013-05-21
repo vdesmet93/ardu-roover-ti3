@@ -4,7 +4,7 @@
 #include "commands.h"
 #include "defines.h"
 
-
+struct SipMessage lastMessage;
 
 unsigned char receivedBytes[MAX_DATA_SIZE];
 int bytesRead = 0;
