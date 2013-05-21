@@ -24,9 +24,8 @@ void initializeConnection()
   sendPacket(ENABLE, 1);
   delay(PACKET_DELAY);
 
-  sendPacket(SONAR, 0);
+  sendPacket(BUMPSTALL, 0);
   delay(PACKET_DELAY);
-
 }
 
 /**
@@ -199,6 +198,12 @@ void receiveData()
     else if(bytesRead == PACKET_COUNT_POSITION) 
     {
       packetSize = PACKET_HEADER_LENGTH + receivedBytes[bytesRead];
+      /**
+       * if(packetSize > MAX_DATA_SIZE)  {
+       * bytesRead = 0;
+       * packetSize = 0;
+       * continue;
+       }**/
     }
 
     bytesRead++;
@@ -210,34 +215,36 @@ void receiveData()
     }
   }
 }
+
 void parseMessage()
 {
   // Check the message
   switch(checkMessage(receivedBytes, bytesRead))
   {
   case MESSAGE_COMPLETE:
-//    free(lastMessage.sonar);
-//    lastMessage = convertToSipMessage(receivedBytes);
-
-    //    Serial.print("Value: ");
-    //    Serial.println(*(lastMessage.sonar));
-    Serial.println();
-    for(int i = 0; i < bytesRead; i++) {
-      char str[3];
-      sprintf(str, "%x ", receivedBytes[i]);
-      Serial.print(str);
-    }
-    Serial.println();    
-    Serial.println();
-
+    Serial.println("Message correct!");
+    Serial.print("Length: ");
+    Serial.println(bytesRead);
+    free(lastMessage.sonar);
+    lastMessage = convertToSipMessage(receivedBytes);
+    /**
+     * Serial.println(); 
+     * for(int i = 0; i < bytesRead; i++) {
+     * char str[3];
+     * sprintf(str, "%x ", receivedBytes[i]);
+     * Serial.print(str);
+     * }
+     * Serial.println();    
+     * Serial.println();
+     **/
     break;
   case MESSAGE_INCORRECT:
-    Serial.println("Message incorrect");
-    for(int i = 0; i < bytesRead; i++) {
-      char str[3];
-      sprintf(str, "%x ", receivedBytes[i]);
-      Serial.print(str);
-    }
+    Serial.println("Message incorrect"); /**
+     * for(int i = 0; i < bytesRead; i++) {
+     * char str[3];
+     * sprintf(str, "%x ", receivedBytes[i]);
+     * Serial.print(str);
+     }**/
     Serial.println();
 
     // Check for new header bytes in current packet
@@ -277,9 +284,9 @@ void shiftBytes(int startPosOfPacket)
   // Move all the bytes
   for(int i = 0; i < bytesRead; i++)
   {
-     receivedBytes[i] = receivedBytes[i + startPosOfPacket]; 
+    receivedBytes[i] = receivedBytes[i + startPosOfPacket]; 
   }
-  
+
   // Update Packet Size
   packetSize = PACKET_HEADER_LENGTH + receivedBytes[PACKET_COUNT_POSITION];
 }
@@ -307,12 +314,13 @@ int checkMessage(unsigned char receivedBytes[], int count)
   //calculate checksum and check
   int calculatedChecksum = getChecksum(receivedBytes);
   int recievedCheckSum = (receivedBytes[count - 2] << BYTE_SHIFT) | receivedBytes[count - 1];
-  Serial.print("Calculated: ");
-  Serial.println(calculatedChecksum);
-
-  Serial.print("Received: ");
-  Serial.println(recievedCheckSum);
-
+  /**
+   * Serial.print("Calculated: ");
+   * Serial.println(calculatedChecksum);
+   * 
+   * Serial.print("Received: ");
+   * Serial.println(recievedCheckSum);
+   **/
   if (calculatedChecksum != recievedCheckSum)
   {
     return MESSAGE_INCORRECT;
@@ -412,6 +420,8 @@ void readFromRover()
     Serial.println(str);
   }
 }
+
+
 
 
 

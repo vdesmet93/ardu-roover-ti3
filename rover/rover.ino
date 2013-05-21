@@ -4,8 +4,6 @@
 
 int number, n, fd, anglePulse, directionPulse, killPulse;
 int current = 0;
-boolean backward = false;
-boolean halt = false;
 unsigned int spd;
 
 void setup() 
@@ -42,25 +40,6 @@ void checkAngle()
   }
 }
 
-void checkDirection()
-{
-  directionPulse = pulseIn(DIRECTION, HIGH);
-  if(directionPulse > FORWARD_THRESHOLD && directionPulse < HALT_THRESHOLD)
-  {
-    halt = false;
-    backward = false;
-  }
-  else if(directionPulse > HALT_THRESHOLD && directionPulse < REVERSE_THRESHOLD)
-  {
-    halt = true;
-    backward = false;
-  }
-  else if(directionPulse > REVERSE_THRESHOLD)
-  {
-    backward = true;
-    halt = false;
-  }
-}
 
 void checkSpeed()
 {
@@ -71,12 +50,7 @@ void checkSpeed()
     if(spd > 0 && spd < MAX_SPEED)
     {
       spd *= SPEED_MULTIPLIER;
-      //if(halt)
-      //  spd = 0;
-      if(backward)
-        sendPacket(VEL, -spd);
-      else
-        sendPacket(VEL, spd);
+      sendPacket(VEL, spd);
     }
     else
       sendPacket(VEL, 0);
@@ -97,12 +71,10 @@ void checkKillswitch()
 
 void loop()
 {
-  sendPacket(PULSE);
-  
   checkAngle();
-  checkDirection();
   checkSpeed();
   checkKillswitch();
-  
+
   receiveData();
 }
+
