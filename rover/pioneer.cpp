@@ -198,12 +198,6 @@ void receiveData()
     else if(bytesRead == PACKET_COUNT_POSITION) 
     {
       packetSize = PACKET_HEADER_LENGTH + receivedBytes[bytesRead];
-      /**
-       * if(packetSize > MAX_DATA_SIZE)  {
-       * bytesRead = 0;
-       * packetSize = 0;
-       * continue;
-       }**/
     }
 
     bytesRead++;
@@ -344,10 +338,6 @@ void readFromRover()
     Serial.println(str);
   }
 }
-
-
-
-
 
 
 
