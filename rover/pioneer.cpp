@@ -297,6 +297,7 @@ struct SipMessage convertToSipMessage(unsigned char receivedBytes[])
   message.lVel	|= receivedBytes[POS_SIP_LVEL_2] << 8;
   message.rVel	= receivedBytes[POS_SIP_RVEL_1];
   message.rVel	|= receivedBytes[POS_SIP_RVEL_2] << 8;
+  message.vel = (message.rVel + message.lVel) / 2;
   message.batteryLevel = receivedBytes[POS_SIP_BATTERY];
   message.stallAndBumper = receivedBytes[POS_SIP_STALL_AND_BUMPERS_1];
   message.stallAndBumper |= (unsigned char)(receivedBytes[POS_SIP_STALL_AND_BUMPERS_2] << 8);

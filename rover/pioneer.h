@@ -32,6 +32,9 @@ struct SipMessage {
    */
   int lVel;
   int rVel;
+  
+  /** Average velocity of both wheels **/
+  int vel;
 
   /** Battery charge
    * In tenths of volts 
