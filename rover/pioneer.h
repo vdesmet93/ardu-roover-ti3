@@ -68,8 +68,10 @@ struct SipMessage {
 
   /** Array of sonar readings
    * Values are distance in millimeters 
+   * Old Sonar are the previous sonar values
    */
   int* sonar;
+  int* oldSonar;
 
   /** Gripper state byte */
   int gripState;

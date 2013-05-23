@@ -145,7 +145,8 @@ bool checkFront() {
     sonarDangerThreshold = SONAR_DANGER_THRESHOLD;
 
   for(int sonarPos = 2; sonarPos <= 5; sonarPos++) {
-    if(lastMessage.sonar[sonarPos] < sonarDangerThreshold) {
+    if(lastMessage.sonar[sonarPos] < sonarDangerThreshold &&
+        lastMessage.sonar[sonarPos] < lastMessage.oldSonar[sonarPos]) {
       // Danger ahead
 
         if(dangerSonarValue > lastMessage.sonar[sonarPos] || dangerSonarValue == 0) 
@@ -166,8 +167,12 @@ bool checkFront() {
 
     float degreesPerSecond = dangerSonarValue * seconds;
 
-    if(degreesPerSecond > MAX_ROTATION)
-      degreesPerSecond = MAX_ROTATION;
+    int maxRotation = sonarCorner * 3;
+    if(maxRotation > MAX_ROTATION)
+      maxRotation = MAX_ROTATION;
+      
+    if(degreesPerSecond > maxRotation)
+      degreesPerSecond = maxRotation;
 
     if(dangerSonarPos < 4) {
       // Rotate to right

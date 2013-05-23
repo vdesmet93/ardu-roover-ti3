@@ -220,7 +220,7 @@ void parseMessage()
   switch(checkMessage(receivedBytes, bytesRead))
   {
   case MESSAGE_COMPLETE:
-    free(lastMessage.sonar);
+    free(lastMessage.oldSonar);
     lastMessage = convertToSipMessage(receivedBytes);
     break;
   case MESSAGE_INCORRECT:
@@ -306,7 +306,10 @@ struct SipMessage convertToSipMessage(unsigned char receivedBytes[])
   message.flags = receivedBytes[POS_SIP_FLAGS_1];
   message.flags = (unsigned char) (receivedBytes[POS_SIP_FLAGS_2] << 8);
   message.compass = receivedBytes[POS_SIP_COMPASS];
-
+  
+  // Keep the oldSonar
+  message.oldSonar = lastMessage.sonar;
+  
   int numberOfSensors = receivedBytes[POS_SIP_SONAR_COUNT];
   message.sonar = (int *) malloc(sizeof(int) * numberOfSensors);
   int index = POS_SIP_SONAR_BEGIN;
