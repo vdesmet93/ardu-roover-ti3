@@ -92,7 +92,7 @@ bool checkEmergencyFront()
       
     if(lastMessage.sonar[1] < threshold)
       isDangerous = true;
-    if(lastMessage.sonar[2] < threshold)
+    else if(lastMessage.sonar[2] < threshold)
       isDangerous = true;
     else if(lastMessage.sonar[5] < threshold)
       isDangerous = true;
@@ -103,19 +103,16 @@ bool checkEmergencyFront()
   if(isDangerous) 
   {
     // Danger ahead
-
     if(currentSpeed > 0 ) 
     {
       sendPacket(E_STOP);
       delay(KILL_DELAY);
-
       currentSpeed = 0;
     } 
     else 
     { 
       // currentSpeed == 0
-
-      // Check left side
+      // Check left and right side.
       int leftSum = lastMessage.sonar[1] + lastMessage.sonar[2];
       int rightSum = lastMessage.sonar[5] + lastMessage.sonar[6];
 
@@ -127,9 +124,7 @@ bool checkEmergencyFront()
       sendPacket(ROTATE, angle);
     }
     return true;
-
   }
-
   return false;
 }
 
@@ -155,28 +150,21 @@ bool checkFront() {
           angle *= -1;
         }
         sendPacket(ROTATE, angle);
-
         return true;
-
       } 
-
     }
   }
 
   return false;
 }
 
-bool checkSonar() {
-
+bool checkSonar() 
+{
   // Emergency stop front, it's not safe
   if(checkEmergencyFront())
     return true;
-
   if(checkFront()) 
     return true;
-
-
-
   // Return false if everything is safe
   return false;
 }
@@ -186,16 +174,12 @@ void loop()
   checkSpeed();
   checkAngle();
   checkKillswitch();
-
   receiveData();
-
   while(checkSonar()) {
     // Update data and check again
     receiveData();    
-
     // Check Killswitch
     checkKillswitch();
-
     isForcedOverride = true;
   }
   isForcedOverride = false;
