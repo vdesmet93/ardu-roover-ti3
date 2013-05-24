@@ -84,9 +84,9 @@ bool checkEmergencyFront()
     threshold = SONAR_KILLSWITCH_THRESHOLD;
 
   bool isDangerous = false;
-  if(lastMessage.sonar[3] < threshold)
+  if(lastMessage.sonar[SONAR_CENTER_LEFT] < threshold)
     isDangerous = true;
-  else if(lastMessage.sonar[4] < threshold)
+  else if(lastMessage.sonar[SONAR_CENTER_RIGHT] < threshold)
     isDangerous = true;
   else {
 
@@ -96,13 +96,13 @@ bool checkEmergencyFront()
         threshold = SONAR_SIDE_KS_THRESHOLD;
     }
 
-    if(lastMessage.sonar[1] < threshold)
+    if(lastMessage.sonar[SONAR_SIDE_LEFT] < threshold)
       isDangerous = true;
-    else if(lastMessage.sonar[2] < threshold)
+    else if(lastMessage.sonar[SONAR_FRONT_LEFT] < threshold)
       isDangerous = true;
-    else if(lastMessage.sonar[5] < threshold)
+    else if(lastMessage.sonar[SONAR_FRONT_RIGHT] < threshold)
       isDangerous = true;
-    else if(lastMessage.sonar[6] < threshold)
+    else if(lastMessage.sonar[SONAR_SIDE_RIGHT] < threshold)
       isDangerous = true;
   }
 
@@ -119,8 +119,8 @@ bool checkEmergencyFront()
     { 
       // currentSpeed == 0
       // Check left and right side.
-      int leftSum = lastMessage.sonar[1] + lastMessage.sonar[2];
-      int rightSum = lastMessage.sonar[5] + lastMessage.sonar[6];
+      int leftSum = lastMessage.sonar[SONAR_SIDE_LEFT] + lastMessage.sonar[SONAR_FRONT_LEFT];
+      int rightSum = lastMessage.sonar[SONAR_FRONT_RIGHT] + lastMessage.sonar[SONAR_SIDE_RIGHT];
 
       int angle = SONAR_ROTATION_BASE;
       if(rightSum > leftSum) {
