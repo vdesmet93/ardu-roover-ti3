@@ -1,8 +1,6 @@
 #include "commands.h"
 #include "pioneer.h"
 #include "defines.h"
-int sonarArray[] = { 
-  0, 0, 45, 80, 80, 45, 0, 0 };
 
 int number, n, fd, anglePulse, directionPulse, killPulse;
 int current = 0;
@@ -48,7 +46,7 @@ void checkSpeed()
 {
   int spd = pulseIn(JOYSTICK_LEFT_Y, HIGH);
   if(spd > SPEED_THRESHOLD)
-  {
+  {  
     spd = spd - (SPEED_THRESHOLD + SPEED_COMPENSATOR);
     if(spd > 0 && spd < MAX_INTEGER)
     {
@@ -80,7 +78,7 @@ void checkKillswitch()
 
 bool checkEmergencyFront() 
 {
-  int threshold = 200 + ( lastMessage.vel / 2);
+  int threshold = KILLSWITCH_THRESHOLD_BASE + ( lastMessage.vel / KILLSWITCH_SIDE_THRESHOLD_DIVIDER);
 
   if(threshold > SONAR_KILLSWITCH_THRESHOLD)
     threshold = SONAR_KILLSWITCH_THRESHOLD;
@@ -93,7 +91,7 @@ bool checkEmergencyFront()
   else {
 
     if(isForcedOverride) {
-      threshold = 200 + (lastMessage.vel / 3);
+      threshold = KILLSWITCH_THRESHOLD_BASE + (lastMessage.vel / KILLSWITCH_THRESHOLD_DIVIDER);
       if(threshold > SONAR_SIDE_KS_THRESHOLD)
         threshold = SONAR_SIDE_KS_THRESHOLD;
     }
@@ -124,7 +122,7 @@ bool checkEmergencyFront()
       int leftSum = lastMessage.sonar[1] + lastMessage.sonar[2];
       int rightSum = lastMessage.sonar[5] + lastMessage.sonar[6];
 
-      int angle = 180;
+      int angle = SONAR_ROTATION_BASE;
       if(rightSum > leftSum) {
         // Left side is safer, rotate to left
         angle *= -1;
@@ -140,16 +138,16 @@ bool checkFront() {
   int dangerSonarPos = 0;
   int dangerSonarValue = 0;
 
-  int sonarDangerThreshold = 200 + (lastMessage.vel * 2);
+  int sonarDangerThreshold = SONAR_DANGER_BASE + (lastMessage.vel * SONAR_DANGER_MULTIPLIER);
   if(sonarDangerThreshold > SONAR_DANGER_THRESHOLD)
     sonarDangerThreshold = SONAR_DANGER_THRESHOLD;
 
   for(int sonarPos = 2; sonarPos <= 5; sonarPos++) {
     if(lastMessage.sonar[sonarPos] < sonarDangerThreshold &&
-        lastMessage.sonar[sonarPos] < lastMessage.oldSonar[sonarPos]) {
+      lastMessage.sonar[sonarPos] < lastMessage.oldSonar[sonarPos]) {
       // Danger ahead
 
-        if(dangerSonarValue > lastMessage.sonar[sonarPos] || dangerSonarValue == 0) 
+      if(dangerSonarValue > lastMessage.sonar[sonarPos] || dangerSonarValue == 0) 
       {
         // This sonar position is more in danger than the other ones 
         dangerSonarPos = sonarPos;
@@ -158,7 +156,7 @@ bool checkFront() {
     }
   }
   if(currentSpeed > 0 && dangerSonarValue > 0) {
-    int sonarCorner = sonarArray[dangerSonarPos];
+    int sonarCorner = SONAR_ARRAY[dangerSonarPos];
     int pioneerSpeed = lastMessage.vel;
 
     int distance = dangerSonarValue - SONAR_KILLSWITCH_THRESHOLD;
@@ -167,10 +165,10 @@ bool checkFront() {
 
     float degreesPerSecond = dangerSonarValue * seconds;
 
-    int maxRotation = sonarCorner * 3;
+    int maxRotation = sonarCorner * SONAR_ROTATION_MULTIPLIER;
     if(maxRotation > MAX_ROTATION)
       maxRotation = MAX_ROTATION;
-      
+
     if(degreesPerSecond > maxRotation)
       degreesPerSecond = maxRotation;
 
@@ -207,7 +205,7 @@ void loop()
     // Update data and check again
     receiveData();    
     // Check Killswitch
-//    checkKillswitch();
+    //    checkKillswitch();
     isForcedOverride = true;
   }
   if(isForcedOverride) 
@@ -215,6 +213,7 @@ void loop()
     isForcedOverride = false;
   }
 }
+
 
 
 
