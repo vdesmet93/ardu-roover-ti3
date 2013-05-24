@@ -2,8 +2,7 @@
 #include "pioneer.h"
 #include "defines.h"
 
-int number, n, fd, anglePulse, directionPulse, killPulse;
-int current = 0;
+int  anglePulse, directionPulse, killPulse;
 int currentSpeed = 0;
 bool isForcedOverride = false;
 
