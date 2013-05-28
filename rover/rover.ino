@@ -3,8 +3,8 @@
 #include "defines.h"
 
 int  anglePulse, directionPulse, killPulse;
-int currentSpeed = 0;
-bool isForcedOverride = false;
+int currentSpeed = 0, currentRotation = 0;
+bool isForcedOverride = false, isSpeedForcedOverride = false;
 
 void setup() 
 {
@@ -36,7 +36,8 @@ void checkAngle()
     {
       angle = 0;
     }
-    sendPacket(ROTATE, angle * ANGLE_MULTIPLIER);
+    currentRotation = angle * ANGLE_MULTIPLIER;
+    sendPacket(ROTATE, currentRotation);
   }
 }
 
@@ -47,6 +48,7 @@ void checkSpeed()
   if(spd > SPEED_THRESHOLD)
   {  
     spd = spd - (SPEED_THRESHOLD + SPEED_COMPENSATOR);
+    spd *= 2;
     if(spd > 0 && spd < MAX_INTEGER)
     {
       if(spd > MAX_SPEED)
@@ -121,11 +123,12 @@ bool checkEmergencyFront()
       int leftSum = lastMessage.sonar[SONAR_SIDE_LEFT] + lastMessage.sonar[SONAR_FRONT_LEFT];
       int rightSum = lastMessage.sonar[SONAR_FRONT_RIGHT] + lastMessage.sonar[SONAR_SIDE_RIGHT];
 
-      int angle = SONAR_ROTATION_BASE;
+      int angle = SONAR_KS_ROTATION_BASE;
       if(rightSum > leftSum) {
         // Left side is safer, rotate to left
         angle *= -1;
       }
+      currentRotation = angle;
       sendPacket(ROTATE, angle);
     }
     return true;
@@ -141,7 +144,7 @@ bool checkFront() {
   if(sonarDangerThreshold > SONAR_DANGER_THRESHOLD)
     sonarDangerThreshold = SONAR_DANGER_THRESHOLD;
 
-  for(int sonarPos = 2; sonarPos <= 5; sonarPos++) {
+  for(int sonarPos = SONAR_FRONT_LEFT; sonarPos <= SONAR_FRONT_RIGHT; sonarPos++) {
     if(lastMessage.sonar[sonarPos] < sonarDangerThreshold &&
       lastMessage.sonar[sonarPos] < lastMessage.oldSonar[sonarPos]) {
       // Danger ahead
@@ -155,32 +158,77 @@ bool checkFront() {
     }
   }
   if(currentSpeed > 0 && dangerSonarValue > 0) {
+
     int sonarCorner = SONAR_ARRAY[dangerSonarPos];
     int pioneerSpeed = lastMessage.vel;
 
-    int distance = dangerSonarValue - SONAR_KILLSWITCH_THRESHOLD;
+    int distance = dangerSonarValue - SONAR_KILLSWITCH_THRESHOLD - SAFE_ZONE;
 
-    float seconds = ((float)distance) / ((float)pioneerSpeed);
+    if(distance > 0) {
+      float seconds = ((float)distance) / ((float)pioneerSpeed);
 
-    float degreesPerSecond = dangerSonarValue * seconds;
+      float degreesPerSecond = SONAR_KS_ROTATION_BASE + (dangerSonarValue * seconds);
 
-    int maxRotation = sonarCorner * SONAR_ROTATION_MULTIPLIER;
-    if(maxRotation > MAX_ROTATION)
-      maxRotation = MAX_ROTATION;
+      int maxRotation = sonarCorner * SONAR_ROTATION_MULTIPLIER;
+      if(maxRotation > MAX_ROTATION)
+        maxRotation = MAX_ROTATION;
 
-    if(degreesPerSecond > maxRotation)
-      degreesPerSecond = maxRotation;
+      if(degreesPerSecond > maxRotation) {
+        degreesPerSecond = maxRotation;
+      }
 
-    if(dangerSonarPos < 4) {
-      // Rotate to right
-      degreesPerSecond *= -1;
+      if(dangerSonarPos < 4) {
+        // Rotate to right
+        degreesPerSecond *= -1;
+      } 
+      sendPacket(ROTATE, (int)degreesPerSecond);
+
     } 
-    sendPacket(ROTATE, (int)degreesPerSecond);
-    return true;
+    else if(currentRotation == 0){
+      int angle = SONAR_KS_ROTATION_BASE;
+
+      currentRotation = angle;
+
+      if(dangerSonarPos < 4) {
+        // Rotate to right
+        angle *= -1;
+      } 
+      sendPacket(ROTATE, angle);
+
+    }
+    return true;  
 
   }
 
   return false;
+}
+
+int checkFrontSpeed()
+{
+  if(currentSpeed > 0) {
+    int dangerSonarPos = 0;
+    int dangerSonarValue = 0;
+
+    int sonarDangerThreshold = SONAR_REDUCE_SPD_BASE + (lastMessage.vel * SONAR_REDUCE_SPD_MULTIPLIER);
+    if(sonarDangerThreshold > SONAR_REDUCE_SPD_MAX)
+      sonarDangerThreshold = SONAR_REDUCE_SPD_MAX;
+
+    for(int sonarPos = SONAR_FRONT_LEFT; sonarPos <= SONAR_FRONT_RIGHT; sonarPos++) {
+      if(lastMessage.sonar[sonarPos] < sonarDangerThreshold &&
+        lastMessage.sonar[sonarPos] < lastMessage.oldSonar[sonarPos]) {
+        // Reduce speed
+
+        sendPacket(VEL, currentSpeed * 0.5);
+        isSpeedForcedOverride = true;
+        return 1; 
+      }
+    }
+  }
+
+  isSpeedForcedOverride = false;
+
+
+  return 0;
 }
 
 bool checkSonar() 
@@ -190,13 +238,19 @@ bool checkSonar()
     return true;
   if(checkFront()) 
     return true;
+
+  // Reduce speed when something is near
+  checkFrontSpeed();
+
   // Return false if everything is safe
   return false;
 }
 
 void loop()
 {
-  checkSpeed();
+  if(!isSpeedForcedOverride) {
+    checkSpeed();
+  }
   checkAngle();
   checkKillswitch();
   receiveData();
@@ -210,8 +264,21 @@ void loop()
   if(isForcedOverride) 
   {
     isForcedOverride = false;
+    isSpeedForcedOverride = false;
+    currentRotation = 0;
   }
 }
+
+
+
+
+
+
+
+
+
+
+
 
 
 
