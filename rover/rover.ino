@@ -55,8 +55,9 @@ void checkSpeed()
         spd = MAX_SPEED;
 
       currentSpeed = spd;
-
-      sendPacket(VEL, spd);
+      
+      if(!isSpeedForcedOverride) 
+        sendPacket(VEL, spd);
     }
     else {
       sendPacket(VEL, 0);
@@ -248,9 +249,7 @@ bool checkSonar()
 
 void loop()
 {
-  if(!isSpeedForcedOverride) {
-    checkSpeed();
-  }
+  checkSpeed();
   checkAngle();
   checkKillswitch();
   receiveData();
