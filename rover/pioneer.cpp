@@ -10,6 +10,9 @@ unsigned char receivedBytes[MAX_DATA_SIZE];
 int bytesRead = 0;
 int packetSize = 0;
 
+/**
+ *Starts connection with the pioneer
+ */
 void initializeConnection()
 {
   sendPacket(SYNC0);

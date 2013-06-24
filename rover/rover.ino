@@ -6,6 +6,9 @@ int  anglePulse, directionPulse, killPulse;
 int currentSpeed = 0, currentRotation = 0;
 bool isForcedOverride = false, isSpeedForcedOverride = false;
 
+/**
+ *Sets pins for APM input and starts the Serial bus
+ */
 void setup() 
 {
   pinMode(RX,INPUT);
@@ -25,6 +28,9 @@ void setup()
   initializeConnection();
 }
 
+/**
+ * Checks rotation input from APM and forwards converted value to Pioneer
+ */
 void checkAngle()
 {
   anglePulse = pulseIn(JOYSTICK_RIGHT_X, HIGH);
@@ -41,7 +47,9 @@ void checkAngle()
   }
 }
 
-
+/**
+ * Checks accelleration input from APM and forwards converted value to Pioneer
+ */
 void checkSpeed()
 {
   int spd = pulseIn(JOYSTICK_LEFT_Y, HIGH);
@@ -68,6 +76,9 @@ void checkSpeed()
     sendPacket(PULSE);
 }
 
+/**
+ * Checks for killswitch signal from controller and forwards to Pioneer
+ */
 void checkKillswitch()
 {
   killPulse = pulseIn(KILL_SWITCH, HIGH);
@@ -78,7 +89,11 @@ void checkKillswitch()
   }
 }
 
-bool checkEmergencyFront() 
+/**
+ * Checks if there is anything directly in front of the Pioneer through the sonar arrays. 
+ * If there is something in the way, it triggers emergency brake
+ */
+ bool checkEmergencyFront() 
 {
   int threshold = KILLSWITCH_THRESHOLD_BASE + ( lastMessage.vel / KILLSWITCH_SIDE_THRESHOLD_DIVIDER);
 
@@ -137,6 +152,11 @@ bool checkEmergencyFront()
   return false;
 }
 
+/** 
+ * Checks if there is anything directly in front of the Pioneer through the sonar arrays. 
+ * If there is something in the way, it calculates where it is using avarages from the left and right sides. 
+ * After that, it steers to the side with the lowest value
+ */
 bool checkFront() {
   int dangerSonarPos = 0;
   int dangerSonarValue = 0;
@@ -204,6 +224,9 @@ bool checkFront() {
   return false;
 }
 
+/**
+ * Checks if there is anything in front of the Pioneer. If there is something in front of it, it lowers its speed so it can make tighter turns.
+ */
 int checkFrontSpeed()
 {
   if(currentSpeed > 0) {
@@ -232,6 +255,9 @@ int checkFrontSpeed()
   return 0;
 }
 
+/**
+ * General function to trigger checks for sonar
+ */
 bool checkSonar() 
 {
   // Emergency stop front, it's not safe
@@ -247,6 +273,9 @@ bool checkSonar()
   return false;
 }
 
+/**
+ * Loops all the time, checks input from APM, check killswitch control, read package from Pioneer, check sonar.
+ */
 void loop()
 {
   checkSpeed();

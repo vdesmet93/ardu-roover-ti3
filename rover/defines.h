@@ -1,9 +1,11 @@
 #pragma once
 
 #define DEBUG
+//Serial
 #define RX 10
 #define TX 11
 #define BAUD_RATE  9600
+//Read from Pioneer
 #define BASE_PACKET_LENGTH  6
 #define BYTE_SHIFT  8
 #define AND_MSB  0xFF00
@@ -13,6 +15,7 @@
 #define HEADER_B  0xFB
 #define HEADER_LENGTH 2
 #define CHECKSUM_LENGTH 2
+//Read from APM
 #define JOYSTICK_RIGHT_X  A0
 #define JOYSTICK_RIGHT_Y  A1
 #define JOYSTICK_LEFT_Y  A2
@@ -21,6 +24,7 @@
 #define DIRECTION  A5
 #define KILL_SWITCH  4
 #define MANUAL_AUTO  2
+//Pioneer
 #define SYNC_DELAY  25
 #define PACKET_DELAY  5
 #define KILL_DELAY  20
@@ -38,6 +42,7 @@
 #define BAUD_RATE  9600
 #define PIONEER_BAUD_RATE  9600
 
+//Message correction
 #define MESSAGE_COMPLETE 0
 #define MESSAGE_INCOMPLETE 1
 #define MESSAGE_INCORRECT 2
@@ -72,6 +77,7 @@
 #define SONAR_REDUCE_SPD_BASE 200
 #define SONAR_REDUCE_SPD_MULTIPLIER 4
 
+//Pioneer packages
 #define POS_COMMAND 3
 #define POS_SIP_XPOS_1 4
 #define POS_SIP_XPOS_2 5
