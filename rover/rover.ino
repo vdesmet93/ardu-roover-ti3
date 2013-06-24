@@ -11,8 +11,6 @@ bool isForcedOverride = false, isSpeedForcedOverride = false;
  */
 void setup() 
 {
-  pinMode(RX,INPUT);
-  pinMode(TX, OUTPUT);
   pinMode(JOYSTICK_RIGHT_X, INPUT);
   pinMode(JOYSTICK_RIGHT_Y, INPUT);
   pinMode(JOYSTICK_LEFT_X, INPUT);
@@ -21,8 +19,6 @@ void setup()
   pinMode(DIRECTION, INPUT);
   pinMode(KILL_SWITCH, INPUT);
   pinMode(MANUAL_AUTO, INPUT);
-  digitalWrite(TX, HIGH);
-  digitalWrite(RX, LOW);
   Serial.begin(BAUD_RATE);
   Serial1.begin(PIONEER_BAUD_RATE);
   initializeConnection();

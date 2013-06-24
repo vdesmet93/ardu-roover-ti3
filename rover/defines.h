@@ -2,9 +2,8 @@
 
 #define DEBUG
 //Serial
-#define RX 10
-#define TX 11
 #define BAUD_RATE  9600
+#define PIONEER_BAUD_RATE  9600
 //Read from Pioneer
 #define BASE_PACKET_LENGTH  6
 #define BYTE_SHIFT  8
@@ -39,8 +38,6 @@
 #define DEAD_ZONE 3
 #define KILLSWITCH_THRESHOLD  1100
 #define ANGLE_MULTIPLIER  1.5
-#define BAUD_RATE  9600
-#define PIONEER_BAUD_RATE  9600
 
 //Message correction
 #define MESSAGE_COMPLETE 0
